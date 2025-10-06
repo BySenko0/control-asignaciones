@@ -33,6 +33,6 @@
   @yield('scripts')
 
   {{-- Livewire al final del body --}}
-  @livewireScripts
+  
 </body>
 </html>

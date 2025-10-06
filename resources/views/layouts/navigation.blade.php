@@ -86,7 +86,7 @@
                     <span x-show="sidebarOpen" class="truncate">Solicitudes de cliente</span>
                 </a>
 
-                <a href="#" class="group flex items-center gap-3 rounded-lg px-3 py-2 {{ $linkClass }}">
+                <a href="{{ route('clientes.index') }}" class="group flex items-center gap-3 rounded-lg px-3 py-2 {{ $linkClass }}">
                     <svg class="w-5 h-5 opacity-70" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zM8 11c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5C15 14.17 10.33 13 8 13zm8 0c-.29 0-.62.02-.97.05C16.67 13.84 18 14.79 18 16.5V19h6v-2.5c0-2.33-4.67-3.5-8-3.5z"/></svg>
                     <span x-show="sidebarOpen" class="truncate">Clientes</span>
                 </a>
