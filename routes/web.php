@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ClientesAsignacionController;
 
 Route::get('/', function () {
     // Si está autenticado mándalo al dashboard; si no, al login
@@ -19,6 +20,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+Route::middleware(['auth','role:admin|virtuality'])->group(function () {
+    Route::get('/clientes/seleccion', [ClientesAsignacionController::class, 'index'])
+        ->name('clientes.seleccion');
 });
 
 require __DIR__.'/auth.php';

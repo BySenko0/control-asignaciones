@@ -10,8 +10,6 @@
             </svg>
         </button>
 
-        <div class="text-sm sm:text-base font-medium opacity-80">Menu hamburguesa</div>
-
         {{-- Usuario --}}
         <div class="relative">
             <button x-on:click="userOpen=!userOpen" class="p-2 rounded-full hover:bg-white/10 focus:outline-none">
@@ -83,7 +81,7 @@
                     <span x-show="sidebarOpen" class="truncate">Equipos del cliente</span>
                 </a>
 
-                <a href="#" class="group flex items-center gap-3 rounded-lg px-3 py-2 {{ $linkClass }}">
+                <a href="{{ route('clientes.seleccion') }}" class="group flex items-center gap-3 rounded-lg px-3 py-2 {{ $linkClass }}">
                     <svg class="w-5 h-5 opacity-70" viewBox="0 0 24 24" fill="currentColor"><path d="M5 3h14v18H5zM8 7h8v2H8zM8 11h8v2H8zM8 15h8v2H8z"/></svg>
                     <span x-show="sidebarOpen" class="truncate">Solicitudes de cliente</span>
                 </a>
