@@ -41,12 +41,12 @@ class SolicitudesClienteController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'cliente_id'    => ['required','exists:clientes,id'],
+            'cliente_id'    => ['required','exists:clientes_asignaciones,id'],
             'no_serie'      => ['nullable','string','max:100'],
             'dispositivo'   => ['required','string','max:150'],
             'modelo'        => ['nullable','string','max:150'],
             'tipo_servicio' => ['required','string','max:150'],
-            'estado'        => ['required','in:pendiente,en_proceso,resuelta'],
+            'estado'        => ['required','in:pendiente,en_proceso,finalizado'],
             'descripcion'   => ['nullable','string','max:2000'],
         ]);
 
@@ -59,12 +59,12 @@ class SolicitudesClienteController extends Controller
     public function update(Request $request, Solicitud $solicitud)
     {
         $data = $request->validate([
-            'cliente_id'    => ['required','exists:clientes,id'],
+            'cliente_id'    => ['required','exists:clientes_asignaciones,id'],
             'no_serie'      => ['nullable','string','max:100'],
             'dispositivo'   => ['required','string','max:150'],
             'modelo'        => ['nullable','string','max:150'],
             'tipo_servicio' => ['required','string','max:150'],
-            'estado'        => ['required','in:pendiente,en_proceso,resuelta'],
+            'estado'        => ['required','in:pendiente,en_proceso,finalizado'],
             'descripcion'   => ['nullable','string','max:2000'],
         ]);
 
