@@ -147,7 +147,8 @@
     {{-- ===================== MODALS ===================== --}}
 
     {{-- CREAR --}}
-    <div x-cloak x-show="showCreate" x-transition.opacity.duration.150ms
+    <div x-cloak x-show="showCreate"
+         x-transition.opacity.duration.150ms
          @keydown.window.escape="closeModals()"
          @click.self="closeModals()"
          class="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
@@ -224,7 +225,8 @@
     </div>
 
     {{-- EDITAR --}}
-    <div x-cloak x-show="showEdit" x-transition.opacity.duration.150ms
+    <div x-cloak x-show="showEdit"
+         x-transition.opacity.duration.150ms
          @keydown.window.escape="closeModals()"
          @click.self="closeModals()"
          class="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
@@ -236,7 +238,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="md:col-span-2">
                         <label class="block text-sm text-gray-600">Cliente</label>
-                        <select name="cliente_id" x-model="editForm.cliente_id"
+                        <select name="cliente_id" x-model="form.cliente_id"
                                 class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-indigo-500">
                             @foreach(\App\Models\ClientesAsignacion::orderBy('nombre_cliente')->get(['id','nombre_cliente']) as $c)
                                 <option value="{{ $c->id }}">{{ $c->nombre_cliente }}</option>
@@ -246,7 +248,7 @@
 
                     <div>
                         <label class="block text-sm text-gray-600">Estado</label>
-                        <select name="estado" x-model="editForm.estado"
+                        <select name="estado" x-model="form.estado"
                                 class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-indigo-500">
                             @foreach (['pendiente','en_proceso','finalizado'] as $estado)
                                 <option value="{{ $estado }}">{{ ucfirst(str_replace('_',' ', $estado)) }}</option>
@@ -256,31 +258,31 @@
 
                     <div>
                         <label class="block text-sm text-gray-600">No. serie</label>
-                        <input name="no_serie" x-model="editForm.no_serie"
+                        <input name="no_serie" x-model="form.no_serie"
                                class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-indigo-500"/>
                     </div>
 
                     <div>
                         <label class="block text-sm text-gray-600">Dispositivo</label>
-                        <input name="dispositivo" x-model="editForm.dispositivo"
+                        <input name="dispositivo" x-model="form.dispositivo"
                                class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-indigo-500"/>
                     </div>
 
                     <div>
                         <label class="block text-sm text-gray-600">Modelo</label>
-                        <input name="modelo" x-model="editForm.modelo"
+                        <input name="modelo" x-model="form.modelo"
                                class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-indigo-500"/>
                     </div>
 
                     <div>
                         <label class="block text-sm text-gray-600">Tipo de servicio</label>
-                        <input name="tipo_servicio" x-model="editForm.tipo_servicio"
+                        <input name="tipo_servicio" x-model="form.tipo_servicio"
                                class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-indigo-500"/>
                     </div>
 
                     <div class="md:col-span-2">
                         <label class="block text-sm text-gray-600">Descripción</label>
-                        <textarea name="descripcion" rows="3" x-model="editForm.descripcion"
+                        <textarea name="descripcion" rows="3" x-model="form.descripcion"
                                   class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-indigo-500"></textarea>
                     </div>
                 </div>
@@ -300,7 +302,8 @@
 
     {{-- ASIGNAR (solo admin) --}}
     @role('admin')
-    <div x-cloak x-show="showAssign" x-transition.opacity.duration.150ms
+    <div x-cloak x-show="showAssign"
+         x-transition.opacity.duration.150ms
          @keydown.window.escape="closeModals()"
          @click.self="closeModals()"
          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -332,81 +335,60 @@
 
     {{-- ================= Alpine ================= --}}
     <script>
-        document.addEventListener('alpine:init', () => {
-            Alpine.data('solicitudesUI', (init = { clienteId: null }) => ({
-                activeModal: null,
+        function solicitudesUI(init = { clienteId: null }) {
+            const blank = () => ({
+                id: null,
+                cliente_id: init.clienteId ?? '',
+                no_serie: '',
+                dispositivo: '',
+                modelo: '',
+                tipo_servicio: '',
+                estado: 'pendiente',
+                descripcion: '',
+            });
+
+            return {
+                // estado de modales
+                showCreate: false,
+                showEdit: false,
+                showAssign: false,
+
+                // formulario de edición/creación
+                form: blank(),
+
+                // id para asignar
                 assignId: null,
-                editForm: {
-                    id: null,
-                    cliente_id: init.clienteId ?? '',
-                    no_serie: '',
-                    dispositivo: '',
-                    modelo: '',
-                    tipo_servicio: '',
-                    estado: 'pendiente',
-                    descripcion: '',
-                },
-                blankEdit() {
-                    return {
-                        id: null,
-                        cliente_id: init.clienteId ?? '',
-                        no_serie: '',
-                        dispositivo: '',
-                        modelo: '',
-                        tipo_servicio: '',
-                        estado: 'pendiente',
-                        descripcion: '',
-                    };
-                },
-                get showCreate() {
-                    return this.activeModal === 'create';
-                },
-                get showEdit() {
-                    return this.activeModal === 'edit';
-                },
-                get showAssign() {
-                    return this.activeModal === 'assign';
-                },
-                get editAction() {
-                    return this.editForm.id ? `{{ url('solicitudes') }}/${this.editForm.id}` : '#';
-                },
-                get assignAction() {
-                    return this.assignId ? `{{ url('solicitudes') }}/${this.assignId}/assign` : '#';
-                },
-                closeModals() {
-                    this.activeModal = null;
-                    this.assignId = null;
-                },
+
+                // acciones derivadas
+                get editAction()   { return this.form.id ? `{{ url('solicitudes') }}/${this.form.id}` : '#'; },
+                get assignAction() { return this.assignId ? `{{ url('solicitudes') }}/${this.assignId}/assign` : '#'; },
+
+                // helpers
+                resetFlags() { this.showCreate = this.showEdit = this.showAssign = false; },
+                closeModals() { this.resetFlags(); this.assignId = null; },
+
+                // abrir modales
                 openCreate() {
-                    this.editForm = this.blankEdit();
-                    this.activeModal = 'create';
+                    this.resetFlags();
+                    this.form = blank();
+                    this.showCreate = true;
                     this.$nextTick(() => {
                         if (init.clienteId && this.$refs.createCliente) {
                             this.$refs.createCliente.value = init.clienteId;
-                        } else if (this.$refs.createCliente) {
-                            this.$refs.createCliente.selectedIndex = 0;
                         }
                     });
                 },
                 openEdit(payload = {}) {
-                    const sanitized = {
-                        id: payload.id ?? null,
-                        cliente_id: payload.cliente_id ?? '',
-                        no_serie: payload.no_serie ?? '',
-                        dispositivo: payload.dispositivo ?? '',
-                        modelo: payload.modelo ?? '',
-                        tipo_servicio: payload.tipo_servicio ?? '',
-                        estado: payload.estado ?? 'pendiente',
-                        descripcion: payload.descripcion ?? '',
-                    };
-                    this.editForm = { ...this.blankEdit(), ...sanitized };
-                    this.activeModal = 'edit';
+                    this.resetFlags();
+                    this.form = { ...blank(), ...payload };
+                    this.showEdit = true;
                 },
                 openAssign({ id }) {
+                    this.resetFlags();
                     this.assignId = id;
-                    this.activeModal = 'assign';
+                    this.showAssign = true;
                 },
-            }));
-        });
+            }
+        }
     </script>
 </x-app-layout>
