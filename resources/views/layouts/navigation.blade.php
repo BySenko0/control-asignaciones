@@ -91,6 +91,16 @@
                     <span x-show="sidebarOpen" class="truncate">Clientes</span>
                 </a>
 
+                @role('admin')
+                <a href="{{ route('usuarios.index') }}"
+                   class="group flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('usuarios.*') ? 'bg-white/10 text-white' : $linkClass }}">
+                    <svg class="w-5 h-5 opacity-70" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zM8 11c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm-3 5c-2.33 0-5 1.17-5 3.5V21h10v-1.5c0-2.33-2.67-3.5-5-3.5zm11 0c-.52 0-1.02.05-1.48.13 1.55.7 2.48 1.77 2.48 3.37V21h6v-1.5c0-2.33-3.67-3.5-7-3.5z"/>
+                    </svg>
+                    <span x-show="sidebarOpen" class="truncate">Usuarios</span>
+                </a>
+                @endrole
+
                 <a href="#" class="group flex items-center gap-3 rounded-lg px-3 py-2 {{ $linkClass }}">
                     <svg class="w-5 h-5 opacity-70" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5a2 2 0 00-2 2v14l4-4h12a2 2 0 002-2V5a2 2 0 00-2-2z"/></svg>
                     <span x-show="sidebarOpen" class="truncate">Checklist-plantillas</span>
