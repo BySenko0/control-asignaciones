@@ -42,6 +42,23 @@
                    class="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
         </form>
 
+        @if(session('ok'))
+            <div class="rounded-xl border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-800">
+                {{ session('ok') }}
+            </div>
+        @endif
+
+        @if($errors->any())
+            <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div class="font-medium">Revisa la información proporcionada:</div>
+                <ul class="mt-2 list-disc space-y-1 pl-5">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         {{-- Tabla tarjeta --}}
         <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
             <table class="min-w-full">
@@ -134,6 +151,7 @@
     {{-- CREAR --}}
     <div x-cloak x-show="showCreate" x-trap.noscroll="showCreate"
          @keydown.window.escape="showCreate=false"
+         @click.self="showCreate=false"
          class="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
         <div class="w-full max-w-2xl rounded-xl bg-white p-6 shadow-xl">
             <div class="text-lg font-semibold text-gray-800">Agregar solicitud</div>
@@ -210,6 +228,7 @@
     {{-- EDITAR --}}
     <div x-cloak x-show="showEdit" x-trap.noscroll="showEdit"
          @keydown.window.escape="showEdit=false"
+         @click.self="showEdit=false"
          class="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
         <div class="w-full max-w-2xl rounded-xl bg-white p-6 shadow-xl">
             <div class="text-lg font-semibold text-gray-800">Editar solicitud</div>
@@ -285,6 +304,7 @@
     @role('admin')
     <div x-cloak x-show="showAssign" x-trap.noscroll="showAssign"
          @keydown.window.escape="showAssign=false"
+         @click.self="showAssign=false"
          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
         <div class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
             <div class="text-lg font-semibold text-gray-800">Asignar solicitud</div>
@@ -315,16 +335,23 @@
     {{-- ================= Alpine ================= --}}
     <script>
         function solicitudesUI(init = { clienteId: null, clienteName: null }) {
+            const defaultEdit = () => ({
+                id: null,
+                cliente_id: init.clienteId ?? '',
+                no_serie: '',
+                dispositivo: '',
+                modelo: '',
+                tipo_servicio: '',
+                estado: 'pendiente',
+                descripcion: '',
+            });
+
             return {
                 showCreate: false,
                 showEdit: false,
                 showAssign: false,
 
-                edit: {
-                    id: null, cliente_id: init.clienteId ?? '', no_serie: '',
-                    dispositivo: '', modelo: '', tipo_servicio: '',
-                    estado: 'pendiente', descripcion: ''
-                },
+                edit: defaultEdit(),
 
                 get editAction() {
                     return this.edit.id ? `{{ url('solicitudes') }}/${this.edit.id}` : '#';
@@ -335,15 +362,42 @@
                     return this.assignId ? `{{ url('solicitudes') }}/${this.assignId}/assign` : '#';
                 },
 
+                resetState() {
+                    this.showCreate = false;
+                    this.showEdit = false;
+                    this.showAssign = false;
+                    this.assignId = null;
+                },
+
                 openCreate() {
-                    this.showEdit = false; this.showAssign = false; this.showCreate = true;
-                    this.$nextTick(() => { if (init.clienteId && this.$refs.createCliente) this.$refs.createCliente.value = init.clienteId; });
+                    this.resetState();
+                    this.edit = defaultEdit();
+                    this.showCreate = true;
+                    this.$nextTick(() => {
+                        if (init.clienteId && this.$refs.createCliente) {
+                            this.$refs.createCliente.value = init.clienteId;
+                        }
+                    });
                 },
                 openEdit(payload) {
-                    this.showCreate = false; this.showAssign = false; this.edit = { ...this.edit, ...payload }; this.showEdit = true;
+                    this.resetState();
+                    const sanitized = {
+                        ...payload,
+                        cliente_id: payload.cliente_id ?? '',
+                        no_serie: payload.no_serie ?? '',
+                        dispositivo: payload.dispositivo ?? '',
+                        modelo: payload.modelo ?? '',
+                        tipo_servicio: payload.tipo_servicio ?? '',
+                        estado: payload.estado ?? 'pendiente',
+                        descripcion: payload.descripcion ?? '',
+                    };
+                    this.edit = { ...defaultEdit(), ...sanitized };
+                    this.showEdit = true;
                 },
                 openAssign({ id }) {
-                    this.showEdit = false; this.assignId = id; this.showAssign = true;
+                    this.resetState();
+                    this.assignId = id;
+                    this.showAssign = true;
                 },
             }
         }

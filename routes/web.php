@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ClientesAsignacionController;
 use App\Http\Controllers\ClientesCrudController;
 use App\Http\Controllers\SolicitudesClienteController;
+use App\Http\Controllers\UsuariosController;
 
 
 Route::get('/', function () {
@@ -51,6 +52,10 @@ Route::middleware(['auth','role:admin|virtuality'])->group(function () {
     Route::put('/solicitudes/{solicitud}',               [SolicitudesClienteController::class, 'update'])->name('solicitudes.update');
     Route::delete('/solicitudes/{solicitud}',            [SolicitudesClienteController::class, 'destroy'])->name('solicitudes.destroy');
     Route::post('/solicitudes/{solicitud}/assign',       [SolicitudesClienteController::class, 'assign'])->name('solicitudes.assign');
+});
+
+Route::middleware(['auth','role:admin'])->group(function () {
+    Route::get('/usuarios', [UsuariosController::class, 'index'])->name('usuarios.index');
 });
 
 require __DIR__.'/auth.php';
