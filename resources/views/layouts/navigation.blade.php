@@ -68,7 +68,7 @@
                             <path d="M7 10l5 5 5-5H7z"/>
                         </svg>
                     </button>
-                    <div x-show="osOpen" x-collapse class="pl-8 pr-2">
+                    <div x-show="osOpen" x-transition.opacity.duration.150ms x-cloak class="pl-8 pr-2 space-y-1">
                         <a href="#" class="block px-2 py-1.5 rounded {{ $linkClass }}">• Pendientes</a>
                         <a href="#" class="block px-2 py-1.5 rounded {{ $linkClass }}">• En proceso</a>
                         <a href="#" class="block px-2 py-1.5 rounded {{ $linkClass }}">• Resueltas</a>
