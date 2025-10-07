@@ -6,6 +6,9 @@
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>{{ config('app.name','Control de Activos') }}</title>
 
+  {{-- Oculta elementos con x-cloak antes de que Alpine inicie --}}
+  <style>[x-cloak]{display:none!important}</style>
+
   @vite(['resources/css/app.css','resources/js/app.js'])
 
   {{-- (opcional) estilos por-página --}}
@@ -24,15 +27,11 @@
   {{-- zona de modales que usa Breeze/Jetstream, deja el stack disponible --}}
   @stack('modals')
 
-  {{-- scripts globales compilados por Vite ya están arriba en @vite --}}
-
   {{-- scripts por-página (usa @push en las vistas hijas) --}}
   @stack('scripts')
-
-  {{-- alternativa clásica (una sola sección de scripts) --}}
   @yield('scripts')
 
-  {{-- Livewire al final del body --}}
-  
+  {{-- Livewire al final del body (si lo usas) --}}
+  @livewireScripts
 </body>
 </html>

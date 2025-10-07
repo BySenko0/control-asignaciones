@@ -17,4 +17,9 @@ class ClientesAsignacion extends Model
         'imagen',
         'correo_empresa',
     ];
+
+    public function solicitudes()
+    {
+        return $this->hasMany(Solicitud::class, 'cliente_id'); // FK en solicitudes
+    }
 }
