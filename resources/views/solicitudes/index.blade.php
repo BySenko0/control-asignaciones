@@ -1,14 +1,12 @@
-{{-- resources/views/solicitudes/index.blade.php --}}
 <x-app-layout>
-    {{-- Evita parpadeo de modals al cargar --}}
+    @push('styles')
     <style>[x-cloak]{display:none!important}</style>
+    @endpush
 
-    <div class="mx-auto max-w-6xl space-y-6"
-         x-data="solicitudesUI({{ json_encode([
-             'clienteId' => isset($clienteSel) ? $clienteSel->id : null,
-         ]) }})">
+    <div x-data="solicitudesUI({ clienteId: {{ isset($clienteSel) ? $clienteSel->id : 'null' }} })"
+         class="mx-auto max-w-7xl space-y-6">
 
-        {{-- Título + acción principal --}}
+        {{-- Header --}}
         <div class="flex items-center justify-between">
             <h1 class="text-2xl font-semibold text-gray-800">
                 Solicitudes
@@ -16,379 +14,402 @@
                     <span class="text-gray-400 text-base font-normal">/ {{ $clienteSel->nombre_cliente }}</span>
                 @endisset
             </h1>
-
             <div class="flex items-center gap-2">
                 @isset($clienteSel)
                 <a href="{{ route('solicitudes.index') }}"
-                   class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                   class="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
                     Quitar filtro
                 </a>
                 @endisset
-
                 <button @click="openCreate()"
-                        class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+                        class="rounded-xl bg-indigo-600 text-white px-4 py-2 hover:bg-indigo-700">
                     + Nueva solicitud
                 </button>
             </div>
         </div>
 
-        {{-- Barra de búsqueda --}}
-        <form method="GET"
-              action="{{ isset($clienteSel) ? route('clientes.equipos-solicitudes', $clienteSel) : route('solicitudes.index') }}">
-            <input type="text" name="q" value="{{ $q ?? '' }}"
-                   placeholder="Buscar por RFC, nombre, empresa o correo..."
-                   class="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
-        </form>
+        {{-- DataTables CSS --}}
+        <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
 
-        @if(session('ok'))
-            <div class="rounded-xl border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-800">
-                {{ session('ok') }}
-            </div>
-        @endif
+        {{-- Search + estilos tabla “card rows” --}}
+        <style>
+          .search-wrap{position:relative}
+          .search-wrap .icon{position:absolute;inset-inline-start:.9rem;inset-block:0;display:flex;align-items:center;color:#9CA3AF}
+          .search-wrap input{height:2.9rem;padding:.65rem .75rem .65rem 2.6rem;border:1px solid #D1D5DB;border-radius:.85rem}
+          .search-wrap a.clear{position:absolute;inset-inline-end:.5rem;inset-block:0;display:flex;align-items:center;padding-inline:.5rem;color:#6B7280}
 
-        @if($errors->any())
-            <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                <div class="font-medium">Revisa la información proporcionada:</div>
-                <ul class="mt-2 list-disc space-y-1 pl-5">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
+          table.dataTable { border-collapse:separate; border-spacing:0 12px !important; background:transparent }
+          table.dataTable thead th{
+            position:sticky; top:0; z-index:10;
+            background:#F9FAFB !important; color:#6B7280; font-weight:600; text-transform:uppercase; font-size:.72rem;
+            padding:.9rem 1rem; border:none !important; box-shadow:inset 0 -1px 0 #E5E7EB;
+          }
+          table.dataTable tbody tr{ background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.06); border-radius:.9rem }
+          table.dataTable tbody tr td{ padding:1rem 1rem; border-top:1px solid #F3F4F6; border-bottom:1px solid #F3F4F6 }
+          table.dataTable tbody tr td:first-child{ border-left:1px solid #F3F4F6; border-top-left-radius:.9rem; border-bottom-left-radius:.9rem }
+          table.dataTable tbody tr td:last-child{ border-right:1px solid #F3F4F6; border-top-right-radius:.9rem; border-bottom-right-radius:.9rem }
+          table.dataTable tbody tr:hover{ background:#F9FAFB }
 
-        {{-- Tabla tarjeta --}}
-        <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-            <table class="min-w-full">
-                <thead class="bg-gray-50">
-                    <tr class="text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                        <th class="px-4 py-3">No. serie</th>
-                        <th class="px-4 py-3">Dispositivo</th>
-                        <th class="px-4 py-3">Modelo</th>
-                        <th class="px-4 py-3">Tipo de servicio</th>
-                        <th class="px-4 py-3">Estado</th>
-                        <th class="px-4 py-3">Cliente</th>
-                        <th class="px-4 py-3">Asignado</th>
-                        <th class="px-4 py-3 text-right">Acciones</th>
+          .length-menu .dataTables_length{display:flex;align-items:center;gap:.5rem}
+          .length-menu select{
+            appearance:none;-webkit-appearance:none;-moz-appearance:none;
+            padding:.5rem 2.1rem .5rem .7rem;border:1px solid #D1D5DB;border-radius:.5rem;background:#fff;
+            background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M6 8l4 4 4-4" stroke="%236B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+            background-repeat:no-repeat;background-position:right .5rem center
+          }
+          .dataTables_info{display:none}
+          .dataTables_paginate .paginate_button{
+            border:1px solid #E5E7EB;border-radius:.5rem;padding:.35rem .6rem;margin:0 .2rem;background:#fff;color:#374151
+          }
+          .dataTables_paginate .paginate_button.current{background:#111827;color:#fff;border-color:#111827}
+          .dataTables_paginate .paginate_button:hover{background:#F3F4F6}
+        </style>
+
+        {{-- Buscador externo --}}
+        <div class="search-wrap">
+          <span class="icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </span>
+          <input id="searchSolicitudes" type="text" placeholder="Buscar por serie, dispositivo, cliente, estado, etc."
+                 class="w-full focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          @if(!empty($q))
+            <a class="clear" href="{{ isset($clienteSel) ? route('clientes.equipos-solicitudes',$clienteSel) : route('solicitudes.index') }}">Limpiar</a>
+          @endif
+        </div>
+
+        {{-- Tabla --}}
+        <div class="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <table id="tablaSolicitudes" class="min-w-full text-sm">
+                <thead class="text-gray-600">
+                    <tr>
+                        <th class="text-left">No. serie</th>
+                        <th class="text-left">Dispositivo</th>
+                        <th class="text-left">Modelo</th>
+                        <th class="text-left">Tipo de servicio</th>
+                        <th class="text-left">Estado</th>
+                        <th class="text-left">Cliente</th>
+                        <th class="text-left">Asignado</th>
+                        <th class="text-right">Acciones</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-200 text-sm text-gray-700">
-                    @forelse($solicitudes as $s)
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-4 py-3">{{ $s->no_serie ?? '—' }}</td>
-                            <td class="px-4 py-3">{{ $s->dispositivo }}</td>
-                            <td class="px-4 py-3">{{ $s->modelo ?? '—' }}</td>
-                            <td class="px-4 py-3">{{ $s->tipo_servicio }}</td>
-                            <td class="px-4 py-3">
-                                @php($color = [
-                                    'pendiente'   => 'bg-yellow-100 text-yellow-800',
-                                    'en_proceso'  => 'bg-blue-100 text-blue-800',
-                                    'finalizado'  => 'bg-green-100 text-green-800',
-                                ][$s->estado] ?? 'bg-gray-100 text-gray-800')
-                                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $color }}">
-                                    {{ Str::of($s->estado)->replace('_',' ')->ucfirst() }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-3">{{ optional($s->cliente)->nombre_cliente ?? '—' }}</td>
-                            <td class="px-4 py-3">{{ optional($s->asignado)->name ?? 'Sin asignar' }}</td>
-                            <td class="px-4 py-3">
-                                <div class="flex items-center justify-end gap-2">
-                                    <button
-                                        class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50"
-                                        @click="openEdit({
-                                            id: {{ $s->id }},
-                                            cliente_id: {{ $s->cliente_id ?? 'null' }},
-                                            no_serie: @js($s->no_serie),
-                                            dispositivo: @js($s->dispositivo),
-                                            modelo: @js($s->modelo),
-                                            tipo_servicio: @js($s->tipo_servicio),
-                                            estado: @js($s->estado),
-                                            descripcion: @js($s->descripcion),
-                                        })">
-                                        Editar
-                                    </button>
+                <tbody class="text-gray-700">
+                @forelse ($solicitudes as $s)
+                    <tr>
+                        <td>{{ $s->no_serie ?? '—' }}</td>
+                        <td>{{ $s->dispositivo }}</td>
+                        <td>{{ $s->modelo ?? '—' }}</td>
+                        <td>{{ $s->tipo_servicio }}</td>
+                        <td>
+                            @php($color = [
+                                'pendiente'  => 'bg-yellow-100 text-yellow-800',
+                                'en_proceso' => 'bg-blue-100 text-blue-800',
+                                'finalizado' => 'bg-green-100 text-green-800',
+                            ][$s->estado] ?? 'bg-gray-100 text-gray-800')
+                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $color }}">
+                                {{ Str::of($s->estado)->replace('_',' ')->ucfirst() }}
+                            </span>
+                        </td>
+                        <td>{{ optional($s->cliente)->nombre_cliente ?? '—' }}</td>
+                        <td>{{ optional($s->asignado)->name ?? 'Sin asignar' }}</td>
+                        <td>
+                            <div class="flex items-center justify-end gap-2">
+                                <button
+                                   @click='openEdit({
+                                       id: {{ $s->id }},
+                                       cliente_id: {{ $s->cliente_id ?? "null" }},
+                                       no_serie: @js($s->no_serie),
+                                       dispositivo: @js($s->dispositivo),
+                                       modelo: @js($s->modelo),
+                                       tipo_servicio: @js($s->tipo_servicio),
+                                       estado: @js($s->estado),
+                                       descripcion: @js($s->descripcion),
+                                   })'
+                                   class="rounded-lg border border-gray-300 px-3 py-1.5 hover:bg-gray-100">
+                                   Editar
+                                </button>
 
-                                    @role('admin')
-                                    <button
-                                        class="rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-xs text-indigo-700 hover:bg-indigo-50"
-                                        @click="openAssign({ id: {{ $s->id }} })">
-                                        Asignar
-                                    </button>
-                                    @endrole
+                                @role('admin')
+                                <button @click="openAssign({ id: {{ $s->id }} })"
+                                        class="rounded-lg border border-indigo-200 text-indigo-700 px-3 py-1.5 hover:bg-indigo-50">
+                                    Asignar
+                                </button>
+                                @endrole
 
-                                    <form method="POST" action="{{ route('solicitudes.destroy', $s) }}"
-                                          onsubmit="return confirm('¿Borrar solicitud?')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit"
-                                            class="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs text-red-700 hover:bg-red-50">
-                                            Eliminar
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="8" class="px-4 py-10 text-center text-gray-500">
-                                No hay solicitudes.
-                            </td>
-                        </tr>
-                    @endforelse
+                                <form method="POST" action="{{ route('solicitudes.destroy', $s) }}"
+                                      onsubmit="return confirm('¿Eliminar esta solicitud?')">
+                                    @csrf @method('DELETE')
+                                    <button type="submit"
+                                            class="rounded-lg border border-red-300 text-red-700 px-3 py-1.5 hover:bg-red-50">
+                                        Eliminar
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                @empty
+                    <tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">No hay solicitudes.</td></tr>
+                @endforelse
                 </tbody>
             </table>
 
-            {{-- Paginación --}}
-            <div class="px-4 py-3">
-                {{ $solicitudes->links() }}
+            <div class="px-4 pb-5 pt-2">
+                <div class="flex justify-between items-center">
+                    <div class="length-menu"></div>
+                    <div class="pagination-wrapper"></div>
+                </div>
             </div>
         </div>
-    </div>
 
-    {{-- ===================== MODALS ===================== --}}
+        @if(session('ok'))
+            <div class="rounded-xl bg-green-50 text-green-800 px-4 py-2">{{ session('ok') }}</div>
+        @endif
 
-    {{-- CREAR --}}
-    <div x-cloak x-show="showCreate"
-         x-transition.opacity.duration.150ms
-         @keydown.window.escape="closeModals()"
-         @click.self="closeModals()"
-         class="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
-        <div x-show="showCreate" x-transition.scale.duration.150ms class="w-full max-w-2xl rounded-xl bg-white p-6 shadow-xl">
-            <div class="text-lg font-semibold text-gray-800">Agregar solicitud</div>
-            <form method="POST" action="{{ route('solicitudes.store') }}" class="mt-4 space-y-4">
-                @csrf
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="md:col-span-2">
-                        <label class="block text-sm text-gray-600">Cliente</label>
-                        <select name="cliente_id" x-ref="createCliente"
-                                class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-indigo-500">
-                            @foreach(\App\Models\ClientesAsignacion::orderBy('nombre_cliente')->get(['id','nombre_cliente']) as $c)
-                                <option value="{{ $c->id }}"
-                                    @if(isset($clienteSel) && $clienteSel->id === $c->id) selected @endif>
-                                    {{ $c->nombre_cliente }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
+        {{-- ******** MODAL Crear/Editar ******** --}}
+        <div x-cloak x-show="modalOpen"
+             class="fixed inset-0 z-50 flex items-center justify-center">
+          <div class="absolute inset-0 bg-black/40" @click="close()"></div>
 
-                    <div>
-                        <label class="block text-sm text-gray-600">Estado</label>
-                        <select name="estado"
-                                class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-indigo-500">
-                            @foreach (['pendiente','en_proceso','finalizado'] as $estado)
-                                <option value="{{ $estado }}">{{ ucfirst(str_replace('_',' ', $estado)) }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+          <div class="relative w-full max-w-2xl rounded-2xl bg-white shadow-xl p-6">
+              <div class="flex items-center justify-between mb-4">
+                  <h2 class="text-lg font-semibold"
+                      x-text="mode==='create' ? 'Nueva solicitud' : 'Editar solicitud'"></h2>
+                  <button class="p-2 rounded hover:bg-gray-100" @click="close()" aria-label="Cerrar">
+                      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M6 18L18 6M6 6l12 12"/>
+                      </svg>
+                  </button>
+              </div>
 
-                    <div>
-                        <label class="block text-sm text-gray-600">No. serie</label>
-                        <input name="no_serie"
-                               class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-indigo-500"/>
-                    </div>
+              <form :action="formAction()" method="POST" class="grid gap-4 sm:grid-cols-2">
+                  @csrf
+                  <template x-if="mode==='edit'">
+                      <input type="hidden" name="_method" value="PUT">
+                  </template>
 
-                    <div>
-                        <label class="block text-sm text-gray-600">Dispositivo</label>
-                        <input name="dispositivo"
-                               class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-indigo-500"/>
-                    </div>
+                  <input type="hidden" name="_edit_id" x-model="form.id">
 
-                    <div>
-                        <label class="block text-sm text-gray-600">Modelo</label>
-                        <input name="modelo"
-                               class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-indigo-500"/>
-                    </div>
+                  {{-- Cliente --}}
+                  <div class="sm:col-span-2">
+                      <label class="text-sm text-gray-700">Cliente</label>
+                      <select name="cliente_id" x-model="form.cliente_id"
+                              class="mt-1 w-full rounded-xl border-gray-300">
+                          @foreach (\App\Models\ClientesAsignacion::orderBy('nombre_cliente')->get(['id','nombre_cliente']) as $c)
+                              <option value="{{ $c->id }}">{{ $c->nombre_cliente }}</option>
+                          @endforeach
+                      </select>
+                  </div>
 
-                    <div>
-                        <label class="block text-sm text-gray-600">Tipo de servicio</label>
-                        <input name="tipo_servicio"
-                               class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-indigo-500"/>
-                    </div>
+                  {{-- Estado --}}
+                  <div>
+                      <label class="text-sm text-gray-700">Estado</label>
+                      <select name="estado" x-model="form.estado"
+                              class="mt-1 w-full rounded-xl border-gray-300">
+                          @foreach (['pendiente','en_proceso','finalizado'] as $estado)
+                              <option value="{{ $estado }}">{{ ucfirst(str_replace('_',' ', $estado)) }}</option>
+                          @endforeach
+                      </select>
+                  </div>
 
-                    <div class="md:col-span-2">
-                        <label class="block text-sm text-gray-600">Descripción</label>
-                        <textarea name="descripcion" rows="3"
-                                  class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-indigo-500"></textarea>
-                    </div>
-                </div>
+                  {{-- Serie --}}
+                  <div>
+                      <label class="text-sm text-gray-700">No. serie</label>
+                      <input name="no_serie" x-model="form.no_serie"
+                             class="mt-1 w-full rounded-xl border-gray-300">
+                  </div>
 
-                <div class="mt-4 flex justify-end gap-2">
-                    <button type="button"
-                            class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                            @click="closeModals()">Cancelar</button>
-                    <button
-                            class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
-                            Guardar
-                    </button>
-                </div>
-            </form>
+                  {{-- Dispositivo --}}
+                  <div>
+                      <label class="text-sm text-gray-700">Dispositivo</label>
+                      <input name="dispositivo" x-model="form.dispositivo"
+                             class="mt-1 w-full rounded-xl border-gray-300">
+                  </div>
+
+                  {{-- Modelo --}}
+                  <div>
+                      <label class="text-sm text-gray-700">Modelo</label>
+                      <input name="modelo" x-model="form.modelo"
+                             class="mt-1 w-full rounded-xl border-gray-300">
+                  </div>
+
+                  {{-- Tipo de servicio --}}
+                  <div>
+                      <label class="text-sm text-gray-700">Tipo de servicio</label>
+                      <input name="tipo_servicio" x-model="form.tipo_servicio"
+                             class="mt-1 w-full rounded-xl border-gray-300">
+                  </div>
+
+                  {{-- Descripción --}}
+                  <div class="sm:col-span-2">
+                      <label class="text-sm text-gray-700">Descripción</label>
+                      <textarea name="descripcion" rows="3" x-model="form.descripcion"
+                                class="mt-1 w-full rounded-xl border-gray-300"></textarea>
+                  </div>
+
+                  <div class="sm:col-span-2 mt-2 flex items-center justify-end gap-3">
+                      <button type="button" @click="close()"
+                              class="rounded-xl border border-gray-300 px-4 py-2 hover:bg-gray-100">
+                          Cancelar
+                      </button>
+                      <button type="submit"
+                              class="rounded-xl bg-indigo-600 text-white px-4 py-2 hover:bg-indigo-700">
+                          <span x-text="mode==='create' ? 'Crear' : 'Guardar cambios'"></span>
+                      </button>
+                  </div>
+              </form>
+          </div>
         </div>
-    </div>
+        {{-- ******** FIN MODAL Crear/Editar ******** --}}
 
-    {{-- EDITAR --}}
-    <div x-cloak x-show="showEdit"
-         x-transition.opacity.duration.150ms
-         @keydown.window.escape="closeModals()"
-         @click.self="closeModals()"
-         class="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
-        <div x-show="showEdit" x-transition.scale.duration.150ms class="w-full max-w-2xl rounded-xl bg-white p-6 shadow-xl">
-            <div class="text-lg font-semibold text-gray-800">Editar solicitud</div>
-            <form method="POST" :action="editAction" class="mt-4 space-y-4">
-                @csrf @method('PUT')
+        {{-- ******** MODAL ASIGNAR (admin) ******** --}}
+        @role('admin')
+        <div x-cloak x-show="assignOpen"
+             class="fixed inset-0 z-50 flex items-center justify-center">
+          <div class="absolute inset-0 bg-black/40" @click="closeAssign()"></div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="md:col-span-2">
-                        <label class="block text-sm text-gray-600">Cliente</label>
-                        <select name="cliente_id" x-model="form.cliente_id"
-                                class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-indigo-500">
-                            @foreach(\App\Models\ClientesAsignacion::orderBy('nombre_cliente')->get(['id','nombre_cliente']) as $c)
-                                <option value="{{ $c->id }}">{{ $c->nombre_cliente }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+          <div class="relative w-full max-w-md rounded-2xl bg-white shadow-xl p-6">
+              <div class="flex items-center justify-between mb-4">
+                  <h2 class="text-lg font-semibold">Asignar solicitud</h2>
+                  <button class="p-2 rounded hover:bg-gray-100" @click="closeAssign()" aria-label="Cerrar">
+                      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M6 18L18 6M6 6l12 12"/>
+                      </svg>
+                  </button>
+              </div>
 
-                    <div>
-                        <label class="block text-sm text-gray-600">Estado</label>
-                        <select name="estado" x-model="form.estado"
-                                class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-indigo-500">
-                            @foreach (['pendiente','en_proceso','finalizado'] as $estado)
-                                <option value="{{ $estado }}">{{ ucfirst(str_replace('_',' ', $estado)) }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+              <form :action="assignAction()" method="POST" class="grid gap-4">
+                  @csrf
+                  <input type="hidden" x-model="assignId" name="_assign_id">
 
-                    <div>
-                        <label class="block text-sm text-gray-600">No. serie</label>
-                        <input name="no_serie" x-model="form.no_serie"
-                               class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-indigo-500"/>
-                    </div>
+                  <div>
+                      <label class="text-sm text-gray-700">Asignar a</label>
+                      <select name="user_id" class="mt-1 w-full rounded-xl border-gray-300">
+                          @foreach ($usuarios as $u)
+                              <option value="{{ $u->id }}">{{ $u->name }}</option>
+                          @endforeach
+                      </select>
+                  </div>
 
-                    <div>
-                        <label class="block text-sm text-gray-600">Dispositivo</label>
-                        <input name="dispositivo" x-model="form.dispositivo"
-                               class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-indigo-500"/>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm text-gray-600">Modelo</label>
-                        <input name="modelo" x-model="form.modelo"
-                               class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-indigo-500"/>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm text-gray-600">Tipo de servicio</label>
-                        <input name="tipo_servicio" x-model="form.tipo_servicio"
-                               class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-indigo-500"/>
-                    </div>
-
-                    <div class="md:col-span-2">
-                        <label class="block text-sm text-gray-600">Descripción</label>
-                        <textarea name="descripcion" rows="3" x-model="form.descripcion"
-                                  class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-indigo-500"></textarea>
-                    </div>
-                </div>
-
-                <div class="mt-4 flex justify-end gap-2">
-                    <button type="button"
-                            class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                            @click="closeModals()">Cancelar</button>
-                    <button
-                            class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
-                            Actualizar
-                    </button>
-                </div>
-            </form>
+                  <div class="mt-2 flex items-center justify-end gap-3">
+                      <button type="button" @click="closeAssign()"
+                              class="rounded-xl border border-gray-300 px-4 py-2 hover:bg-gray-100">
+                          Cancelar
+                      </button>
+                      <button type="submit"
+                              class="rounded-xl bg-indigo-600 text-white px-4 py-2 hover:bg-indigo-700">
+                          Guardar
+                      </button>
+                  </div>
+              </form>
+          </div>
         </div>
+        @endrole
+        {{-- ******** FIN MODAL ASIGNAR ******** --}}
     </div>
 
-    {{-- ASIGNAR (solo admin) --}}
-    @role('admin')
-    <div x-cloak x-show="showAssign"
-         x-transition.opacity.duration.150ms
-         @keydown.window.escape="closeModals()"
-         @click.self="closeModals()"
-         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-        <div x-show="showAssign" x-transition.scale.duration.150ms class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
-            <div class="text-lg font-semibold text-gray-800">Asignar solicitud</div>
-            <form method="POST" :action="assignAction" class="mt-4">
-                @csrf
-                <label class="block text-sm text-gray-600 mb-1">Asignar a</label>
-                <select name="user_id"
-                        class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-indigo-500">
-                    @foreach ($usuarios as $u)
-                        <option value="{{ $u->id }}">{{ $u->name }}</option>
-                    @endforeach
-                </select>
-
-                <div class="mt-4 flex justify-end gap-2">
-                    <button type="button"
-                            class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                            @click="closeModals()">Cancelar</button>
-                    <button
-                            class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
-                            Guardar
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-    @endrole
-
-    {{-- ================= Alpine ================= --}}
+    @push('scripts')
+    {{-- Alpine: lógica de la vista --}}
     <script>
-        function solicitudesUI(init = { clienteId: null }) {
-            const blank = () => ({
-                id: null,
-                cliente_id: init.clienteId ?? '',
-                no_serie: '',
-                dispositivo: '',
-                modelo: '',
-                tipo_servicio: '',
-                estado: 'pendiente',
-                descripcion: '',
-            });
+    function solicitudesUI({ clienteId = null } = {}){
+        const blank = () => ({
+            id:null,
+            cliente_id: clienteId ?? '',
+            no_serie:'',
+            dispositivo:'',
+            modelo:'',
+            tipo_servicio:'',
+            estado:'pendiente',
+            descripcion:''
+        });
 
-            return {
-                // estado de modales
-                showCreate: false,
-                showEdit: false,
-                showAssign: false,
+        return {
+            // modal crear/editar
+            modalOpen:false,
+            mode:'create',
+            form: blank(),
 
-                // formulario de edición/creación
-                form: blank(),
+            // modal asignar
+            assignOpen:false,
+            assignId:null,
 
-                // id para asignar
-                assignId: null,
+            // abrir/cerrar
+            openCreate(){
+                this.mode='create';
+                this.form = blank();
+                this.modalOpen=true;
+            },
+            openEdit(item){
+                this.mode='edit';
+                this.form = {
+                    ...blank(),
+                    id: item.id ?? null,
+                    cliente_id: item.cliente_id ?? (clienteId ?? ''),
+                    no_serie: item.no_serie ?? '',
+                    dispositivo: item.dispositivo ?? '',
+                    modelo: item.modelo ?? '',
+                    tipo_servicio: item.tipo_servicio ?? '',
+                    estado: item.estado ?? 'pendiente',
+                    descripcion: item.descripcion ?? '',
+                };
+                this.modalOpen=true;
+            },
+            close(){ this.modalOpen=false; },
 
-                // acciones derivadas
-                get editAction()   { return this.form.id ? `{{ url('solicitudes') }}/${this.form.id}` : '#'; },
-                get assignAction() { return this.assignId ? `{{ url('solicitudes') }}/${this.assignId}/assign` : '#'; },
+            openAssign({id}){ this.assignId=id; this.assignOpen=true; },
+            closeAssign(){ this.assignOpen=false; this.assignId=null; },
 
-                // helpers
-                resetFlags() { this.showCreate = this.showEdit = this.showAssign = false; },
-                closeModals() { this.resetFlags(); this.assignId = null; },
-
-                // abrir modales
-                openCreate() {
-                    this.resetFlags();
-                    this.form = blank();
-                    this.showCreate = true;
-                    this.$nextTick(() => {
-                        if (init.clienteId && this.$refs.createCliente) {
-                            this.$refs.createCliente.value = init.clienteId;
-                        }
-                    });
-                },
-                openEdit(payload = {}) {
-                    this.resetFlags();
-                    this.form = { ...blank(), ...payload };
-                    this.showEdit = true;
-                },
-                openAssign({ id }) {
-                    this.resetFlags();
-                    this.assignId = id;
-                    this.showAssign = true;
-                },
-            }
+            // acciones
+            formAction(){
+                if(this.mode==='create'){
+                    return @json(route('solicitudes.store'));
+                }else{
+                    const base = @json(route('solicitudes.update','__ID__'));
+                    return base.replace('__ID__', this.form.id ?? '');
+                }
+            },
+            assignAction(){
+                // POST /solicitudes/{id}/assign
+                const base = @json(url('solicitudes/__ID__/assign'));
+                return base.replace('__ID__', this.assignId ?? '');
+            },
         }
+    }
     </script>
+
+    {{-- jQuery + DataTables --}}
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script>
+      $(function () {
+        const table = $('#tablaSolicitudes').DataTable({
+          dom: 't<"flex justify-between items-center mt-3 px-4"<"length-menu"l><"pagination-wrapper"p>>',
+          pagingType: 'simple_numbers',
+          pageLength: 10,
+          lengthMenu: [[10,25,50,-1],[10,25,50,'Todos']],
+          order: [[0,'asc']],
+          autoWidth: false,
+          language: {
+            lengthMenu: 'Mostrar _MENU_ por página',
+            zeroRecords: 'No se encontraron resultados',
+            info: 'Mostrando página _PAGE_ de _PAGES_',
+            infoEmpty: 'No hay registros disponibles',
+            infoFiltered: '(filtrado de _MAX_ totales)',
+            paginate: { previous: '<', next: '>' }
+          },
+          columnDefs: [
+            { targets:[0,1,2,3,4,5,6,7], className:'align-middle' },
+            { targets:[7], orderable:false }
+          ]
+        });
+
+        // Buscador externo → DataTables
+        $('#searchSolicitudes').on('input', function(){ table.search(this.value).draw(); });
+
+        // precarga si venía ?q=
+        @if(!empty($q))
+          $('#searchSolicitudes').val(@json($q));
+          table.search(@json($q)).draw();
+        @endif
+      });
+    </script>
+    @endpush
 </x-app-layout>

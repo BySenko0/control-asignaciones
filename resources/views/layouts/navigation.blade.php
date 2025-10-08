@@ -112,11 +112,6 @@
                 </a>
 
                 <a href="#" class="group flex items-center gap-3 rounded-lg px-3 py-2 {{ $linkClass }}">
-                    <svg class="w-5 h-5 opacity-70" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12a5 5 0 100-10 5 5 0 000 10zM2 22a10 10 0 1120 0H2z"/></svg>
-                    <span x-show="sidebarOpen" class="truncate">Empleados-TI</span>
-                </a>
-
-                <a href="#" class="group flex items-center gap-3 rounded-lg px-3 py-2 {{ $linkClass }}">
                     <svg class="w-5 h-5 opacity-70" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h16v16H4zM8 8h8v2H8zM8 12h8v2H8z"/></svg>
                     <span x-show="sidebarOpen" class="truncate">Folios</span>
                 </a>

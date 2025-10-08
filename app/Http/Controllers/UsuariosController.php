@@ -10,25 +10,17 @@ class UsuariosController extends Controller
     public function index(Request $request)
     {
         $q = trim((string) $request->get('q', ''));
+        $rolesPermitidos = ['admin', 'virtuality'];
 
         $usuarios = User::query()
             ->with('roles')
-            ->when($q, function ($query) use ($q) {
-                $query->where(function ($inner) use ($q) {
-                    $inner->where('name', 'like', "%{$q}%")
-                        ->orWhere('email', 'like', "%{$q}%")
-                        ->orWhereHas('roles', function ($roleQuery) use ($q) {
-                            $roleQuery->where('name', 'like', "%{$q}%");
-                        });
-                });
-            })
+            ->whereHas('roles', fn ($r) => $r->whereIn('name', $rolesPermitidos))
             ->orderBy('name')
-            ->paginate(10)
-            ->withQueryString();
+            ->get(); // <-- sin paginate: DataTables paginará en el cliente
 
         return view('usuarios.index', [
             'usuarios' => $usuarios,
-            'q' => $q,
+            'q'        => $q, // por si quieres precargar el input desde ?q=
         ]);
     }
 }
