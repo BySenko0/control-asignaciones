@@ -101,7 +101,7 @@
                 </a>
                 @endrole
 
-                <a href="#" class="group flex items-center gap-3 rounded-lg px-3 py-2 {{ $linkClass }}">
+                <a href="{{ route('plantillas.index') }}" class="group flex items-center gap-3 rounded-lg px-3 py-2 {{ $linkClass }}">
                     <svg class="w-5 h-5 opacity-70" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5a2 2 0 00-2 2v14l4-4h12a2 2 0 002-2V5a2 2 0 00-2-2z"/></svg>
                     <span x-show="sidebarOpen" class="truncate">Checklist-plantillas</span>
                 </a>

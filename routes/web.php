@@ -7,6 +7,7 @@ use App\Http\Controllers\ClientesAsignacionController;
 use App\Http\Controllers\ClientesCrudController;
 use App\Http\Controllers\SolicitudesClienteController;
 use App\Http\Controllers\UsuariosController;
+use App\Http\Controllers\PlantillasController;
 
 
 Route::get('/', function () {
@@ -52,6 +53,21 @@ Route::middleware(['auth','role:admin|virtuality'])->group(function () {
     Route::put('/solicitudes/{solicitud}',               [SolicitudesClienteController::class, 'update'])->name('solicitudes.update');
     Route::delete('/solicitudes/{solicitud}',            [SolicitudesClienteController::class, 'destroy'])->name('solicitudes.destroy');
     Route::post('/solicitudes/{solicitud}/assign',       [SolicitudesClienteController::class, 'assign'])->name('solicitudes.assign');
+
+
+    Route::prefix('plantillas')->name('plantillas.')->group(function () {
+        Route::get('/',                     [PlantillasController::class,'index'])->name('index');
+        Route::post('/',                    [PlantillasController::class,'store'])->name('store');
+        Route::put('/{plantilla}',          [PlantillasController::class,'update'])->name('update');
+        Route::delete('/{plantilla}',       [PlantillasController::class,'destroy'])->name('destroy');
+
+        // Pasos
+        Route::get('/{plantilla}/pasos',                     [PlantillasController::class,'pasos'])->name('pasos');
+        Route::post('/{plantilla}/pasos',                    [PlantillasController::class,'pasoStore'])->name('pasos.store');
+        Route::put('/{plantilla}/pasos/{paso}',              [PlantillasController::class,'pasoUpdate'])->name('pasos.update');
+        Route::delete('/{plantilla}/pasos/{paso}',           [PlantillasController::class,'pasoDestroy'])->name('pasos.destroy');
+        Route::post('/{plantilla}/pasos/{paso}/mover',       [PlantillasController::class,'pasoMover'])->name('pasos.mover');
+    });
 });
 
 Route::middleware(['auth','role:admin'])->group(function () {
