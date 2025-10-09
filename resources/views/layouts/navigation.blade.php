@@ -57,6 +57,11 @@
 
                 {{-- Órdenes de servicio (submenu – enlaces vacíos por ahora) --}}
                 <div>
+                    @php
+                        // Defaults si no vienen desde el layout/padre
+                        $itemBase = $itemBase ?? 'hover:bg-gray-800/40 text-gray-200';
+                        $active   = $active   ?? 'bg-gray-900 text-white';
+                    @endphp
                     <button x-on:click="osOpen=!osOpen"
                             class="w-full flex items-center gap-3 rounded-lg px-3 py-2 {{ $linkClass }}">
                         <svg class="w-5 h-5 opacity-70" viewBox="0 0 24 24" fill="currentColor">
@@ -69,9 +74,20 @@
                         </svg>
                     </button>
                     <div x-show="osOpen" x-transition.opacity.duration.150ms x-cloak class="pl-8 pr-2 space-y-1">
-                        <a href="#" class="block px-2 py-1.5 rounded {{ $linkClass }}">• Pendientes</a>
-                        <a href="#" class="block px-2 py-1.5 rounded {{ $linkClass }}">• En proceso</a>
-                        <a href="#" class="block px-2 py-1.5 rounded {{ $linkClass }}">• Resueltas</a>
+                        <a href="{{ route('ordenes.pendientes') }}"
+                           class="block px-2 py-1.5 rounded {{ request()->routeIs('ordenes.pendientes') ? $active : $itemBase }}">
+                            • Pendientes
+                        </a>
+                    
+                        <a href="{{ route('ordenes.enproceso') }}"
+                           class="block px-2 py-1.5 rounded {{ request()->routeIs('ordenes.enproceso') ? $active : $itemBase }}">
+                            • En proceso
+                        </a>
+                    
+                        <a href="{{ route('ordenes.resueltas') }}"
+                           class="block px-2 py-1.5 rounded {{ request()->routeIs('ordenes.resueltas') ? $active : $itemBase }}">
+                            • Resueltas
+                        </a>
                     </div>
                 </div>
 

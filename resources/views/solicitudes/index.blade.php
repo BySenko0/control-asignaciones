@@ -1,7 +1,7 @@
 <x-app-layout>
     @push('styles')
     <style>[x-cloak]{display:none!important}</style>
-    @endpush
+    @endpush>
 
     <div x-data="solicitudesUI({ clienteId: {{ isset($clienteSel) ? $clienteSel->id : 'null' }} })"
          class="mx-auto max-w-7xl space-y-6">
@@ -113,19 +113,22 @@
                         <td>{{ optional($s->asignado)->name ?? 'Sin asignar' }}</td>
                         <td>
                             <div class="flex items-center justify-end gap-2">
+                                {{-- EDITAR: objeto seguro en x-data (sin JSON.parse) --}}
                                 <button
-                                   @click='openEdit({
-                                       id: {{ $s->id }},
-                                       cliente_id: {{ $s->cliente_id ?? "null" }},
-                                       no_serie: @js($s->no_serie),
-                                       dispositivo: @js($s->dispositivo),
-                                       modelo: @js($s->modelo),
-                                       tipo_servicio: @js($s->tipo_servicio),
-                                       estado: @js($s->estado),
-                                       descripcion: @js($s->descripcion),
-                                   })'
-                                   class="rounded-lg border border-gray-300 px-3 py-1.5 hover:bg-gray-100">
-                                   Editar
+                                    x-data="{ item: @js([
+                                        'id'            => $s->id,
+                                        'cliente_id'    => $s->cliente_id,
+                                        'no_serie'      => $s->no_serie,
+                                        'dispositivo'   => $s->dispositivo,
+                                        'modelo'        => $s->modelo,
+                                        'plantilla_id'  => $s->plantilla_id,
+                                        'tipo_servicio' => $s->tipo_servicio,
+                                        'estado'        => $s->estado,
+                                        'descripcion'   => $s->descripcion,
+                                    ]) }"
+                                    @click="openEdit(item)"
+                                    class="rounded-lg border border-gray-300 px-3 py-1.5 hover:bg-gray-100">
+                                    Editar
                                 </button>
 
                                 @role('admin')
@@ -231,11 +234,18 @@
                              class="mt-1 w-full rounded-xl border-gray-300">
                   </div>
 
-                  {{-- Tipo de servicio --}}
+                  {{-- Plantilla (select) --}}
                   <div>
-                      <label class="text-sm text-gray-700">Tipo de servicio</label>
-                      <input name="tipo_servicio" x-model="form.tipo_servicio"
-                             class="mt-1 w-full rounded-xl border-gray-300">
+                      <label class="text-sm text-gray-700">Tipo de servicio (Plantilla)</label>
+                      <select name="plantilla_id" x-model="form.plantilla_id" @change="onPick()"
+                              class="mt-1 w-full rounded-xl border-gray-300">
+                          <option value="">Selecciona una plantilla…</option>
+                          @foreach ($plantillas as $p)
+                              <option value="{{ $p->id }}">{{ $p->nombre }}</option>
+                          @endforeach
+                      </select>
+                      {{-- Guardamos también el nombre para búsquedas --}}
+                      <input type="hidden" name="tipo_servicio" x-model="form.tipo_servicio">
                   </div>
 
                   {{-- Descripción --}}
@@ -282,7 +292,8 @@
 
                   <div>
                       <label class="text-sm text-gray-700">Asignar a</label>
-                      <select name="user_id" class="mt-1 w-full rounded-xl border-gray-300">
+                      <select name="user_id" class="mt-1 w-full rounded-xl border-gray-300" required>
+                          <option value="" disabled selected>Selecciona usuario (virtuality o admin)</option>
                           @foreach ($usuarios as $u)
                               <option value="{{ $u->id }}">{{ $u->name }}</option>
                           @endforeach
@@ -307,6 +318,11 @@
     </div>
 
     @push('scripts')
+    {{-- Plantillas para Alpine (id, nombre, descripcion) --}}
+    <script>
+      const PLANTILLAS = @js($plantillas->map(fn($p)=>['id'=>$p->id,'nombre'=>$p->nombre,'descripcion'=>$p->descripcion]));
+    </script>
+
     {{-- Alpine: lógica de la vista --}}
     <script>
     function solicitudesUI({ clienteId = null } = {}){
@@ -316,12 +332,16 @@
             no_serie:'',
             dispositivo:'',
             modelo:'',
+            plantilla_id:'',
             tipo_servicio:'',
             estado:'pendiente',
             descripcion:''
         });
 
         return {
+            // dataset
+            plantillas: PLANTILLAS,
+
             // modal crear/editar
             modalOpen:false,
             mode:'create',
@@ -346,6 +366,7 @@
                     no_serie: item.no_serie ?? '',
                     dispositivo: item.dispositivo ?? '',
                     modelo: item.modelo ?? '',
+                    plantilla_id: item.plantilla_id ?? '',
                     tipo_servicio: item.tipo_servicio ?? '',
                     estado: item.estado ?? 'pendiente',
                     descripcion: item.descripcion ?? '',
@@ -356,6 +377,15 @@
 
             openAssign({id}){ this.assignId=id; this.assignOpen=true; },
             closeAssign(){ this.assignOpen=false; this.assignId=null; },
+
+            // sincroniza nombre y descripcion al elegir plantilla
+            onPick(){
+                const p = this.plantillas.find(pp => String(pp.id) === String(this.form.plantilla_id));
+                this.form.tipo_servicio = p?.nombre || '';
+                if (!this.form.descripcion && p?.descripcion) {
+                    this.form.descripcion = p.descripcion;
+                }
+            },
 
             // acciones
             formAction(){
