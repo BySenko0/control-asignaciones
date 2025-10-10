@@ -79,8 +79,8 @@
                             • Pendientes
                         </a>
                     
-                        <a href="{{ route('ordenes.enproceso') }}"
-                           class="block px-2 py-1.5 rounded {{ request()->routeIs('ordenes.enproceso') ? $active : $itemBase }}">
+                        <a href="{{ route('ordenes.en_proceso') }}"
+                           class="block px-2 py-1.5 rounded {{ request()->routeIs('ordenes.en_proceso') ? $active : $itemBase }}">
                             • En proceso
                         </a>
                     

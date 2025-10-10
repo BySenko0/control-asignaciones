@@ -27,11 +27,15 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::middleware(['auth','role:admin|virtuality'])->group(function () {
+    // =======================
     // Selector de clientes
+    // =======================
     Route::get('/clientes/seleccion', [ClientesAsignacionController::class, 'index'])
         ->name('clientes.seleccion');
 
+    // =======================
     // CRUD clientes
+    // =======================
     Route::get('/clientes',                [ClientesCrudController::class, 'index'])->name('clientes.index');
     Route::get('/clientes/create',         [ClientesCrudController::class, 'create'])->name('clientes.create');
     Route::post('/clientes',               [ClientesCrudController::class, 'store'])->name('clientes.store');
@@ -39,7 +43,9 @@ Route::middleware(['auth','role:admin|virtuality'])->group(function () {
     Route::put('/clientes/{id}',           [ClientesCrudController::class, 'update'])->name('clientes.update');
     Route::delete('/clientes/{id}',        [ClientesCrudController::class, 'destroy'])->name('clientes.destroy');
 
-    // === Solicitudes del cliente ===
+    // =======================
+    // Solicitudes del cliente
+    // =======================
     // 1) Listado general
     Route::get('/solicitudes', [SolicitudesClienteController::class, 'index'])
         ->name('solicitudes.index');
@@ -54,7 +60,9 @@ Route::middleware(['auth','role:admin|virtuality'])->group(function () {
     Route::delete('/solicitudes/{solicitud}',      [SolicitudesClienteController::class, 'destroy'])->name('solicitudes.destroy');
     Route::post('/solicitudes/{solicitud}/assign', [SolicitudesClienteController::class, 'assign'])->name('solicitudes.assign');
 
-    // === Plantillas y pasos ===
+    // =======================
+    // Plantillas y pasos
+    // =======================
     Route::prefix('plantillas')->name('plantillas.')->group(function () {
         Route::get('/',                     [PlantillasController::class,'index'])->name('index');
         Route::post('/',                    [PlantillasController::class,'store'])->name('store');
@@ -69,29 +77,28 @@ Route::middleware(['auth','role:admin|virtuality'])->group(function () {
         Route::post('/{plantilla}/pasos/{paso}/mover', [PlantillasController::class,'pasoMover'])->name('pasos.mover');
     });
 
-    // === Órdenes de servicio ===
-    // Listado por estado
-    Route::get('/ordenes/{estado}', [OrdenesServicioController::class, 'index'])
-        ->whereIn('estado', ['pendiente','en_proceso','finalizado'])
-        ->name('ordenes.index');
+    // =======================
+    // Órdenes de servicio
+    // =======================
+    // Listas por estado (rutas explícitas y con nombre)
+    Route::get('/ordenes/pendiente',  [OrdenesServicioController::class, 'index'])
+        ->name('ordenes.pendientes')->defaults('estado','pendiente');
 
-    // Aliases para el menú
-    Route::get('/ordenes/pendientes', fn() => redirect()->route('ordenes.index','pendiente'))
-        ->name('ordenes.pendientes');
-    Route::get('/ordenes/en-proceso', fn() => redirect()->route('ordenes.index','en_proceso'))
-        ->name('ordenes.enproceso');
-    Route::get('/ordenes/resueltas', fn() => redirect()->route('ordenes.index','finalizado'))
-        ->name('ordenes.resueltas');
+    Route::get('/ordenes/en_proceso', [OrdenesServicioController::class, 'index'])
+        ->name('ordenes.en_proceso')->defaults('estado','en_proceso');
 
-    // Checklist (resolver una orden "en proceso")
+    Route::get('/ordenes/finalizado', [OrdenesServicioController::class, 'index'])
+        ->name('ordenes.resueltas')->defaults('estado','finalizado');
+
+    // Checklist (resolver/continuar una orden)
     Route::get('/ordenes/{solicitud}/checklist', [OrdenesServicioController::class,'checklist'])
         ->name('ordenes.checklist');
 
-    // Marcar / desmarcar paso
-    Route::post('/ordenes/{solicitud}/paso/{paso}/toggle', [OrdenesServicioController::class,'togglePaso'])
-        ->name('ordenes.paso.toggle');
+    // Marcar / desmarcar paso (PATCH). Nombre usado en la vista checklist.
+    Route::patch('/ordenes/{solicitud}/paso/{paso}', [OrdenesServicioController::class,'togglePaso'])
+        ->name('ordenes.toggle');
 
-    // (Opcional) Finalizar manualmente
+    // Finalizar manualmente (opcional)
     Route::post('/ordenes/{solicitud}/finalizar', [OrdenesServicioController::class,'finalizar'])
         ->name('ordenes.finalizar');
 });

@@ -8,18 +8,19 @@
         {{-- Header + tabs --}}
         <div class="flex items-center justify-between">
             <h1 class="text-2xl font-semibold text-gray-800">Órdenes de servicio / {{ $titulo }}</h1>
+
             <div class="flex gap-2">
                 <a href="{{ route('ordenes.pendientes') }}"
                    class="px-3 py-1.5 rounded-lg border text-sm {{ $estado==='pendiente' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white border-gray-300 hover:bg-gray-50' }}">
-                   Pendientes
+                    Pendientes
                 </a>
-                <a href="{{ route('ordenes.enproceso') }}"
+                <a href="{{ route('ordenes.en_proceso') }}"
                    class="px-3 py-1.5 rounded-lg border text-sm {{ $estado==='en_proceso' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white border-gray-300 hover:bg-gray-50' }}">
-                   En proceso
+                    En proceso
                 </a>
                 <a href="{{ route('ordenes.resueltas') }}"
                    class="px-3 py-1.5 rounded-lg border text-sm {{ $estado==='finalizado' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white border-gray-300 hover:bg-gray-50' }}">
-                   Resueltas
+                    Resueltas
                 </a>
             </div>
         </div>
@@ -55,7 +56,8 @@
 
             <div class="sm:col-span-3 flex items-center gap-2">
                 <button class="rounded-xl bg-indigo-600 text-white px-4 py-2 hover:bg-indigo-700">Aplicar</button>
-                <a href="{{ route('ordenes.index',$estado) }}"
+                {{-- Limpiar filtros: vuelve a la URL actual sin query string --}}
+                <a href="{{ url()->current() }}"
                    class="rounded-xl border border-gray-300 bg-white px-4 py-2 hover:bg-gray-50">Limpiar</a>
             </div>
         </form>
@@ -79,18 +81,18 @@
                             <div>• <span class="text-gray-500">Tipo de servicio:</span> {{ $s->tipo_servicio }}</div>
                             <div>
                                 • <span class="text-gray-500">Pasos hechos:</span>
-                                {{ $s->pasos_hechos_count ?? 0 }}/{{ $s->plantilla?->pasos?->count() ?? 0 }}
+                                {{ $s->pasos_hechos_count ?? 0 }}/{{ $s->total_pasos ?? 0 }}
                             </div>
                         </div>
 
                         <div class="flex items-center gap-2">
-                            {{-- Resolver → checklist --}}
+                            {{-- Resolver/Continuar → checklist --}}
                             <a href="{{ route('ordenes.checklist', $s) }}"
                                class="rounded-lg bg-gray-900 text-white px-3 py-1.5 hover:bg-black">
-                                Resolver
+                                {{ $estado==='pendiente' ? 'Resolver' : ($estado==='en_proceso' ? 'Continuar' : 'Ver') }}
                             </a>
 
-                            {{-- Editar (lleva a /solicitudes y abre por serie/ID si usas modal) --}}
+                            {{-- Editar (lleva a /solicitudes con filtro por serie/ID si usas modal) --}}
                             <a href="{{ route('solicitudes.index', ['q'=>$s->no_serie, 'open'=>$s->id]) }}"
                                class="rounded-lg border border-gray-300 px-3 py-1.5 hover:bg-gray-100">
                                 Editar
