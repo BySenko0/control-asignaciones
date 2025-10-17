@@ -86,10 +86,13 @@ class Solicitud extends Model
         if (!$this->plantilla_id) return;
 
         $ids = PlantillaPaso::where('plantilla_id', $this->plantilla_id)
-            ->orderBy('orden')
+            ->orderBy('numero')
             ->pluck('id');
 
-        if ($ids->isEmpty()) return;
+        if ($ids->isEmpty()) {
+            SolicitudPaso::where('solicitud_id', $this->id)->delete();
+            return;
+        }
 
         foreach ($ids as $pid) {
             SolicitudPaso::firstOrCreate([

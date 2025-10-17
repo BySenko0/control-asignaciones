@@ -69,8 +69,10 @@ class OrdenesServicioController extends Controller
         $user = Auth::user();
         abort_unless($user->hasRole('admin') || $solicitud->asignado_a === $user->id, 403);
 
-        if ($solicitud->estado === 'pendiente') {
-            $solicitud->update(['estado' => 'en_proceso']);
+        $puedeGestionar = $solicitud->asignado_a === $user->id;
+
+        if ($puedeGestionar && $solicitud->estado === Solicitud::PENDIENTE) {
+            $solicitud->update(['estado' => Solicitud::EN_PROCESO]);
         }
 
         // Asegurar registros de pasos (ordenados por 'numero')
@@ -93,7 +95,10 @@ class OrdenesServicioController extends Controller
             'pasos as pasos_hechos_count' => fn($q) => $q->where('hecho', true),
         ]);
 
-        return view('ordenes.checklist', compact('solicitud'));
+        return view('ordenes.checklist', [
+            'solicitud'      => $solicitud,
+            'puedeGestionar' => $puedeGestionar,
+        ]);
     }
 
     /**
@@ -102,7 +107,7 @@ class OrdenesServicioController extends Controller
     public function togglePaso(Request $request, Solicitud $solicitud, PlantillaPaso $paso)
     {
         $user = Auth::user();
-        abort_unless($user->hasRole('admin') || $solicitud->asignado_a === $user->id, 403);
+        abort_unless($solicitud->asignado_a === $user->id, 403);
         abort_unless($paso->plantilla_id === $solicitud->plantilla_id, 404);
 
         $sp = SolicitudPaso::firstOrCreate([
@@ -136,7 +141,7 @@ class OrdenesServicioController extends Controller
     public function finalizar(Solicitud $solicitud)
     {
         $user = Auth::user();
-        abort_unless($user->hasRole('admin') || $solicitud->asignado_a === $user->id, 403);
+        abort_unless($solicitud->asignado_a === $user->id, 403);
 
         $total  = PlantillaPaso::where('plantilla_id', $solicitud->plantilla_id)->count();
         $hechos = SolicitudPaso::where('solicitud_id', $solicitud->id)->where('hecho', true)->count();
