@@ -88,7 +88,18 @@ class SolicitudesClienteController extends Controller
             $data['tipo_servicio'] = $p->nombre;
         }
 
+        $oldPlantilla = $solicitud->plantilla_id;
+        $oldEstado    = $solicitud->estado;
+
         $solicitud->update($data);
+
+        $plantillaCambio = (int) $oldPlantilla !== (int) $solicitud->plantilla_id;
+        $estadoReiniciado = $data['estado'] === Solicitud::PENDIENTE && $oldEstado !== Solicitud::PENDIENTE;
+
+        if ($plantillaCambio || $estadoReiniciado) {
+            $solicitud->pasos()->delete();
+            $solicitud->syncPasosFromPlantilla();
+        }
 
         return back()->with('ok', 'Solicitud actualizada.');
     }

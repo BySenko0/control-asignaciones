@@ -93,10 +93,12 @@
                             </a>
 
                             {{-- Editar (lleva a /solicitudes con filtro por serie/ID si usas modal) --}}
-                            <a href="{{ route('solicitudes.index', ['q'=>$s->no_serie, 'open'=>$s->id]) }}"
-                               class="rounded-lg border border-gray-300 px-3 py-1.5 hover:bg-gray-100">
-                                Editar
-                            </a>
+                            @if($estado==='pendiente')
+                                <a href="{{ route('solicitudes.index', ['q'=>$s->no_serie, 'open'=>$s->id]) }}"
+                                   class="rounded-lg border border-gray-300 px-3 py-1.5 hover:bg-gray-100">
+                                    Editar
+                                </a>
+                            @endif
                         </div>
                     </div>
                 </div>
