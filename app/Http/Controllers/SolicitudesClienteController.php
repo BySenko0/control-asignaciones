@@ -91,17 +91,19 @@ class SolicitudesClienteController extends Controller
         $oldPlantilla = $solicitud->plantilla_id;
         $oldEstado    = $solicitud->estado;
 
+        // Si cambia la plantilla, forzar estado "pendiente"
         $plantillaCambio = (int) $oldPlantilla !== (int) $data['plantilla_id'];
         if ($plantillaCambio) {
-            $data['estado'] = Solicitud::PENDIENTE;
+            $data['estado'] = Solicitud::PENDIENTE; // asegúrate de tener la constante
         }
 
         $solicitud->update($data);
 
-        $plantillaCambio = (int) $oldPlantilla !== (int) $solicitud->plantilla_id;
-        $estadoReiniciado = $data['estado'] === Solicitud::PENDIENTE && $oldEstado !== Solicitud::PENDIENTE;
+        $plantillaCambio   = (int) $oldPlantilla !== (int) $solicitud->plantilla_id;
+        $estadoReiniciado  = $data['estado'] === Solicitud::PENDIENTE && $oldEstado !== Solicitud::PENDIENTE;
 
         if ($plantillaCambio || $estadoReiniciado) {
+            // Reiniciar pasos del checklist
             $solicitud->pasos()->delete();
             $solicitud->syncPasosFromPlantilla();
         }
@@ -147,6 +149,8 @@ class SolicitudesClienteController extends Controller
             return back()->with('ok', 'Solicitud asignada.');
         }
 
+        // Virtuality puede "tomar" la solicitud solo para sí mismo,
+        // siempre que no esté ya asignada a otro.
         abort_unless($actor->hasRole('virtuality'), 403);
         abort_if($solicitud->asignado_a && $solicitud->asignado_a !== $actor->id, 403);
         abort_unless($userId === $actor->id, 403);
