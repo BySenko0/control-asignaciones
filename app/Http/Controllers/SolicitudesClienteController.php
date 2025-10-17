@@ -91,17 +91,29 @@ class SolicitudesClienteController extends Controller
         $oldPlantilla = $solicitud->plantilla_id;
         $oldEstado    = $solicitud->estado;
 
+        // Si cambia la plantilla, forzar estado "pendiente"
+        $plantillaCambio = (int) $oldPlantilla !== (int) $data['plantilla_id'];
+        if ($plantillaCambio) {
+            $data['estado'] = Solicitud::PENDIENTE; // asegúrate de tener la constante
+        }
+
         $solicitud->update($data);
 
-        $plantillaCambio = (int) $oldPlantilla !== (int) $solicitud->plantilla_id;
-        $estadoReiniciado = $data['estado'] === Solicitud::PENDIENTE && $oldEstado !== Solicitud::PENDIENTE;
+        $plantillaCambio   = (int) $oldPlantilla !== (int) $solicitud->plantilla_id;
+        $estadoReiniciado  = $data['estado'] === Solicitud::PENDIENTE && $oldEstado !== Solicitud::PENDIENTE;
 
         if ($plantillaCambio || $estadoReiniciado) {
+            // Reiniciar pasos del checklist
             $solicitud->pasos()->delete();
             $solicitud->syncPasosFromPlantilla();
         }
 
-        return back()->with('ok', 'Solicitud actualizada.');
+        $mensaje = 'Solicitud actualizada.';
+        if ($plantillaCambio) {
+            $mensaje .= ' Estado reiniciado a pendiente por cambio de plantilla.';
+        }
+
+        return back()->with('ok', $mensaje);
     }
 
     /** Borrar */
@@ -111,24 +123,41 @@ class SolicitudesClienteController extends Controller
         return back()->with('ok', 'Solicitud eliminada.');
     }
 
-    /** Asignar a un usuario (solo admin) */
+    /**
+     * Asignar una solicitud.
+     * - Admins pueden escoger cualquier usuario con rol permitido.
+     * - Usuarios virtuality solo pueden tomarse una solicitud sin asignar.
+     */
     public function assign(Request $request, Solicitud $solicitud)
     {
-        abort_unless(Auth::user()->hasRole('admin'), 403);
+        $actor = Auth::user();
 
         $request->validate([
             'user_id' => ['required','integer','exists:users,id'],
         ]);
 
-        // Permite asignar solo a usuarios con rol virtuality o admin
-        $user = User::whereKey($request->integer('user_id'))
-            ->role(['virtuality','admin'])
-            ->firstOrFail();
+        $userId = (int) $request->integer('user_id');
 
-        // Campo correcto según tu esquema: asignado_a
-        $solicitud->asignado_a = $user->id;
+        if ($actor->hasRole('admin')) {
+            $user = User::whereKey($userId)
+                ->role(['virtuality','admin'])
+                ->firstOrFail();
+
+            $solicitud->asignado_a = $user->id;
+            $solicitud->save();
+
+            return back()->with('ok', 'Solicitud asignada.');
+        }
+
+        // Virtuality puede "tomar" la solicitud solo para sí mismo,
+        // siempre que no esté ya asignada a otro.
+        abort_unless($actor->hasRole('virtuality'), 403);
+        abort_if($solicitud->asignado_a && $solicitud->asignado_a !== $actor->id, 403);
+        abort_unless($userId === $actor->id, 403);
+
+        $solicitud->asignado_a = $actor->id;
         $solicitud->save();
 
-        return back()->with('ok', 'Solicitud asignada.');
+        return back()->with('ok', 'Solicitud tomada.');
     }
 }
