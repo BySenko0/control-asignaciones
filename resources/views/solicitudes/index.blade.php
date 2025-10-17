@@ -138,6 +138,19 @@
                                 </button>
                                 @endrole
 
+                                @if(auth()->user()->hasRole('virtuality') && !auth()->user()->hasRole('admin'))
+                                    @if(is_null($s->asignado_a))
+                                        <form method="POST" action="{{ route('solicitudes.assign', $s) }}">
+                                            @csrf
+                                            <input type="hidden" name="user_id" value="{{ auth()->id() }}">
+                                            <button type="submit"
+                                                    class="rounded-lg border border-indigo-200 text-indigo-700 px-3 py-1.5 hover:bg-indigo-50">
+                                                Tomar
+                                            </button>
+                                        </form>
+                                    @endif
+                                @endif
+
                                 <form method="POST" action="{{ route('solicitudes.destroy', $s) }}"
                                       onsubmit="return confirm('¿Eliminar esta solicitud?')">
                                     @csrf @method('DELETE')
