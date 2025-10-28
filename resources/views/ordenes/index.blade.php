@@ -22,6 +22,10 @@
                    class="px-3 py-1.5 rounded-lg border text-sm {{ $estado==='finalizado' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white border-gray-300 hover:bg-gray-50' }}">
                     Resueltas
                 </a>
+                <a href="{{ route('ordenes.vencidas') }}"
+                   class="px-3 py-1.5 rounded-lg border text-sm {{ $estado==='vencidas' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white border-gray-300 hover:bg-gray-50' }}">
+                    Vencidas
+                </a>
             </div>
         </div>
 
@@ -56,7 +60,6 @@
 
             <div class="sm:col-span-3 flex items-center gap-2">
                 <button class="rounded-xl bg-indigo-600 text-white px-4 py-2 hover:bg-indigo-700">Aplicar</button>
-                {{-- Limpiar filtros: vuelve a la URL actual sin query string --}}
                 <a href="{{ url()->current() }}"
                    class="rounded-xl border border-gray-300 bg-white px-4 py-2 hover:bg-gray-50">Limpiar</a>
             </div>
@@ -83,16 +86,43 @@
                                 • <span class="text-gray-500">Pasos hechos:</span>
                                 {{ $s->pasos_hechos_count ?? 0 }}/{{ $s->total_pasos ?? 0 }}
                             </div>
+
+                            {{-- (Opcional) Badge de vencimiento --}}
+                            @php
+                                $fv = $s->fecha_vencimiento;
+                                $venceTxt = '—';
+                                $venceBadge = 'bg-gray-100 text-gray-700';
+                                if($fv){
+                                    $venceTxt = $fv->format('Y-m-d');
+                                    if($s->estado!=='finalizado'){
+                                        if($fv->isBefore(today())) $venceBadge='bg-red-100 text-red-800';
+                                        elseif($fv->isSameDay(today())) $venceBadge='bg-amber-100 text-amber-800';
+                                        else $venceBadge='bg-sky-100 text-sky-800';
+                                    } else {
+                                        $venceBadge='bg-gray-100 text-gray-600';
+                                    }
+                                }
+                            @endphp
+                            <div class="sm:col-span-2">
+                                • <span class="text-gray-500">Vence:</span>
+                                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $venceBadge }}">
+                                    {{ $venceTxt }}
+                                </span>
+                            </div>
                         </div>
 
                         <div class="flex items-center gap-2">
                             {{-- Resolver/Continuar → checklist --}}
                             <a href="{{ route('ordenes.checklist', $s) }}"
                                class="rounded-lg bg-gray-900 text-white px-3 py-1.5 hover:bg-black">
-                                {{ $estado==='pendiente' ? 'Resolver' : ($estado==='en_proceso' ? 'Continuar' : 'Ver') }}
+                                {{
+                                    $estado==='pendiente'   ? 'Resolver'  :
+                                    ($estado==='en_proceso' ? 'Continuar' :
+                                    ($estado==='vencidas'   ? 'Atender'   : 'Ver'))
+                                }}
                             </a>
 
-                            {{-- Editar (lleva a /solicitudes con filtro por serie/ID si usas modal) --}}
+                            {{-- Editar (solo cuando está pendiente) --}}
                             @if($estado==='pendiente')
                                 <a href="{{ route('solicitudes.index', ['q'=>$s->no_serie, 'open'=>$s->id]) }}"
                                    class="rounded-lg border border-gray-300 px-3 py-1.5 hover:bg-gray-100">

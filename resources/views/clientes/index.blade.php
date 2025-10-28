@@ -85,10 +85,27 @@
                 <tbody class="text-gray-700">
                 @forelse ($clientes as $c)
                     <tr>
-                        <td>
-                            <img src="{{ $c->imagen ? asset($c->imagen) : asset('img/no-image.png') }}"
-                                 class="h-9 w-9 rounded-full object-cover ring-1 ring-gray-200"
-                                 onerror="this.src='{{ asset('img/no-image.png') }}';" />
+                        <td class="align-middle">
+                            @php
+                                $url = $c->imagen
+                                    ? (filter_var($c->imagen, FILTER_VALIDATE_URL) ? $c->imagen : asset($c->imagen))
+                                    : null;
+                            @endphp
+
+                            @if($url)
+                                <img
+                                    src="{{ $url }}"
+                                    class="h-9 w-9 rounded-full object-cover ring-1 ring-gray-200"
+                                    onerror="this.replaceWith(Object.assign(document.createElement('div'),{
+                                        className:'h-9 w-9 rounded-full ring-1 ring-gray-200 flex items-center justify-center text-[10px] text-gray-500 bg-gray-100',
+                                        innerText:'Sin imagen'
+                                    }))"
+                                />
+                            @else
+                                <div class="h-9 w-9 rounded-full ring-1 ring-gray-200 flex items-center justify-center text-[10px] text-gray-500 bg-gray-100">
+                                    Sin imagen
+                                </div>
+                            @endif
                         </td>
                         <td class="font-medium text-gray-900">{{ $c->nombre_cliente }}</td>
                         <td>{{ $c->nombre_empresa }}</td>

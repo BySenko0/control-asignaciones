@@ -9,6 +9,7 @@ use App\Http\Controllers\SolicitudesClienteController;
 use App\Http\Controllers\UsuariosController;
 use App\Http\Controllers\PlantillasController;
 use App\Http\Controllers\OrdenesServicioController; // Órdenes de servicio
+use App\Http\Controllers\DashboardController;
 
 Route::get('/', function () {
     return auth()->check()
@@ -16,9 +17,9 @@ Route::get('/', function () {
         : redirect()->route('login');
 });
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', DashboardController::class)
+    ->middleware(['auth','verified'])
+    ->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -89,6 +90,9 @@ Route::middleware(['auth','role:admin|virtuality'])->group(function () {
 
     Route::get('/ordenes/finalizado', [OrdenesServicioController::class, 'index'])
         ->name('ordenes.resueltas')->defaults('estado','finalizado');
+
+    Route::get('/ordenes/vencidas', [OrdenesServicioController::class, 'index'])
+        ->name('ordenes.vencidas')->defaults('estado','vencidas');
 
     // Checklist (resolver/continuar una orden)
     Route::get('/ordenes/{solicitud}/checklist', [OrdenesServicioController::class,'checklist'])

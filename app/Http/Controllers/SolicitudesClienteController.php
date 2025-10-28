@@ -47,15 +47,20 @@ class SolicitudesClienteController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'cliente_id'    => ['required','exists:clientes_asignaciones,id'],
-            'no_serie'      => ['nullable','string','max:120'],
-            'dispositivo'   => ['required','string','max:150'],
-            'modelo'        => ['nullable','string','max:150'],
-            'plantilla_id'  => ['required','exists:plantillas,id'],
-            'tipo_servicio' => ['nullable','string','max:150'],
-            'estado'        => ['required','in:pendiente,en_proceso,finalizado'],
-            'descripcion'   => ['nullable','string','max:2000'],
+            'cliente_id'         => ['required','exists:clientes_asignaciones,id'],
+            'no_serie'           => ['nullable','string','max:120'],
+            'dispositivo'        => ['required','string','max:150'],
+            'modelo'             => ['nullable','string','max:150'],
+            'plantilla_id'       => ['required','exists:plantillas,id'],
+            'tipo_servicio'      => ['nullable','string','max:150'],
+            'estado'             => ['required','in:pendiente,en_proceso,finalizado'],
+            'descripcion'        => ['nullable','string','max:2000'],
+            'fecha_vencimiento'  => ['nullable','date'], // <- NUEVO
+            // Si quieres evitar pasado: ['nullable','date','after_or_equal:today']
         ]);
+
+        // Normalizar fecha_vencimiento: "" -> null
+        $data['fecha_vencimiento'] = $data['fecha_vencimiento'] ?: null;
 
         // Rellenar nombre/descripcion desde la plantilla elegida
         $p = Plantilla::findOrFail($data['plantilla_id']);
@@ -73,15 +78,19 @@ class SolicitudesClienteController extends Controller
     public function update(Request $request, Solicitud $solicitud)
     {
         $data = $request->validate([
-            'cliente_id'    => ['required','exists:clientes_asignaciones,id'],
-            'no_serie'      => ['nullable','string','max:120'],
-            'dispositivo'   => ['required','string','max:150'],
-            'modelo'        => ['nullable','string','max:150'],
-            'plantilla_id'  => ['required','exists:plantillas,id'],
-            'tipo_servicio' => ['nullable','string','max:150'],
-            'estado'        => ['required','in:pendiente,en_proceso,finalizado'],
-            'descripcion'   => ['nullable','string','max:2000'],
+            'cliente_id'         => ['required','exists:clientes_asignaciones,id'],
+            'no_serie'           => ['nullable','string','max:120'],
+            'dispositivo'        => ['required','string','max:150'],
+            'modelo'             => ['nullable','string','max:150'],
+            'plantilla_id'       => ['required','exists:plantillas,id'],
+            'tipo_servicio'      => ['nullable','string','max:150'],
+            'estado'             => ['required','in:pendiente,en_proceso,finalizado'],
+            'descripcion'        => ['nullable','string','max:2000'],
+            'fecha_vencimiento'  => ['nullable','date'], // <- NUEVO
         ]);
+
+        // Normalizar fecha_vencimiento: "" -> null
+        $data['fecha_vencimiento'] = $data['fecha_vencimiento'] ?: null;
 
         $p = Plantilla::findOrFail($data['plantilla_id']);
         if (empty($data['tipo_servicio'])) {
@@ -94,7 +103,7 @@ class SolicitudesClienteController extends Controller
         // Si cambia la plantilla, forzar estado "pendiente"
         $plantillaCambio = (int) $oldPlantilla !== (int) $data['plantilla_id'];
         if ($plantillaCambio) {
-            $data['estado'] = Solicitud::PENDIENTE; // asegúrate de tener la constante
+            $data['estado'] = Solicitud::PENDIENTE; // asegúrate de tener la constante en el modelo
         }
 
         $solicitud->update($data);

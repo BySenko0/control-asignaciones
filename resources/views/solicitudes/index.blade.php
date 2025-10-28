@@ -87,6 +87,7 @@
                         <th class="text-left">Modelo</th>
                         <th class="text-left">Tipo de servicio</th>
                         <th class="text-left">Estado</th>
+                        <th class="text-left">Vence</th> {{-- NUEVA COLUMNA --}}
                         <th class="text-left">Cliente</th>
                         <th class="text-left">Asignado</th>
                         <th class="text-right">Acciones</th>
@@ -109,22 +110,48 @@
                                 {{ Str::of($s->estado)->replace('_',' ')->ucfirst() }}
                             </span>
                         </td>
+                        {{-- CELDA VENCE --}}
+                        <td>
+                            {{-- Defaults --}}
+                            @php($fv    = $s->fecha_vencimiento)  {{-- Carbon|null (cast en el modelo) --}}
+                            @php($texto = $fv ? $fv->format('Y-m-d') : '—')
+                            @php($badge = 'bg-gray-100 text-gray-700')
+
+                            @if($fv)
+                                @if($s->estado !== 'finalizado')
+                                    @if($fv->isBefore(today()))
+                                        @php($badge = 'bg-red-100 text-red-800')     {{-- vencida --}}
+                                    @elseif($fv->isSameDay(today()))
+                                        @php($badge = 'bg-amber-100 text-amber-800') {{-- vence hoy --}}
+                                    @else
+                                        @php($badge = 'bg-sky-100 text-sky-800')     {{-- futura --}}
+                                    @endif
+                                @else
+                                    @php($badge = 'bg-gray-100 text-gray-600')       {{-- ya finalizado --}}
+                                @endif
+                            @endif
+
+                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $badge }}">
+                                {{ $texto }}
+                            </span>
+                        </td>
                         <td>{{ optional($s->cliente)->nombre_cliente ?? '—' }}</td>
                         <td>{{ optional($s->asignado)->name ?? 'Sin asignar' }}</td>
                         <td>
                             <div class="flex items-center justify-end gap-2">
-                                {{-- EDITAR: objeto seguro en x-data (sin JSON.parse) --}}
+                                {{-- EDITAR: objeto seguro en x-data (incluye fecha_vencimiento) --}}
                                 <button
                                     x-data="{ item: @js([
-                                        'id'            => $s->id,
-                                        'cliente_id'    => $s->cliente_id,
-                                        'no_serie'      => $s->no_serie,
-                                        'dispositivo'   => $s->dispositivo,
-                                        'modelo'        => $s->modelo,
-                                        'plantilla_id'  => $s->plantilla_id,
-                                        'tipo_servicio' => $s->tipo_servicio,
-                                        'estado'        => $s->estado,
-                                        'descripcion'   => $s->descripcion,
+                                        'id'                 => $s->id,
+                                        'cliente_id'         => $s->cliente_id,
+                                        'no_serie'           => $s->no_serie,
+                                        'dispositivo'        => $s->dispositivo,
+                                        'modelo'             => $s->modelo,
+                                        'plantilla_id'       => $s->plantilla_id,
+                                        'tipo_servicio'      => $s->tipo_servicio,
+                                        'estado'             => $s->estado,
+                                        'descripcion'        => $s->descripcion,
+                                        'fecha_vencimiento'  => optional($s->fecha_vencimiento)->format('Y-m-d'),
                                     ]) }"
                                     @click="openEdit(item)"
                                     class="rounded-lg border border-gray-300 px-3 py-1.5 hover:bg-gray-100">
@@ -163,7 +190,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">No hay solicitudes.</td></tr>
+                    <tr><td colspan="9" class="px-4 py-8 text-center text-gray-500">No hay solicitudes.</td></tr>
                 @endforelse
                 </tbody>
             </table>
@@ -226,7 +253,7 @@
                       </select>
                   </div>
 
-                  {{-- Serie --}}
+                  {{-- No. serie --}}
                   <div>
                       <label class="text-sm text-gray-700">No. serie</label>
                       <input name="no_serie" x-model="form.no_serie"
@@ -247,17 +274,33 @@
                              class="mt-1 w-full rounded-xl border-gray-300">
                   </div>
 
+                  {{-- Fecha de vencimiento (opcional) --}}
+                  <div x-data="{ sinVenc: false }">
+                      <label class="text-sm text-gray-700">Fecha de vencimiento (opcional)</label>
+                      <input type="date" name="fecha_vencimiento"
+                             class="mt-1 w-full rounded-xl border-gray-300"
+                             :disabled="sinVenc"
+                             x-model="form.fecha_vencimiento"
+                             @change="sinVenc = !form.fecha_vencimiento ? true : false">
+                      <label class="mt-2 inline-flex items-center gap-2 text-sm select-none">
+                        <input type="checkbox" x-model="sinVenc"
+                               @change="if(sinVenc){ form.fecha_vencimiento=''; }"
+                               class="rounded border-gray-300">
+                        Sin vencimiento
+                      </label>
+                      <p class="mt-1 text-xs text-gray-500">Déjalo vacío si no aplica.</p>
+                  </div>
+
                   {{-- Plantilla (select) --}}
                   <div>
                       <label class="text-sm text-gray-700">Tipo de servicio (Plantilla)</label>
-                      <select name="plantilla_id" x-model="form.plantilla_id" @change="onPick()"
-                              class="mt-1 w-full rounded-xl border-gray-300">
+                      <select name="plantilla_id" x-model="form.plantilla_id" @change="onPick()
+                              " class="mt-1 w-full rounded-xl border-gray-300">
                           <option value="">Selecciona una plantilla…</option>
                           @foreach ($plantillas as $p)
                               <option value="{{ $p->id }}">{{ $p->nombre }}</option>
                           @endforeach
                       </select>
-                      {{-- Guardamos también el nombre para búsquedas --}}
                       <input type="hidden" name="tipo_servicio" x-model="form.tipo_servicio">
                   </div>
 
@@ -348,7 +391,8 @@
             plantilla_id:'',
             tipo_servicio:'',
             estado:'pendiente',
-            descripcion:''
+            descripcion:'',
+            fecha_vencimiento:'', // NUEVO
         });
 
         return {
@@ -383,6 +427,7 @@
                     tipo_servicio: item.tipo_servicio ?? '',
                     estado: item.estado ?? 'pendiente',
                     descripcion: item.descripcion ?? '',
+                    fecha_vencimiento: item.fecha_vencimiento ?? '', // NUEVO
                 };
                 this.modalOpen=true;
             },
@@ -391,7 +436,7 @@
             openAssign({id}){ this.assignId=id; this.assignOpen=true; },
             closeAssign(){ this.assignOpen=false; this.assignId=null; },
 
-            // sincroniza nombre y descripcion al elegir plantilla
+            // sincroniza nombre/descripcion al elegir plantilla
             onPick(){
                 const p = this.plantillas.find(pp => String(pp.id) === String(this.form.plantilla_id));
                 this.form.tipo_servicio = p?.nombre || '';
@@ -410,7 +455,6 @@
                 }
             },
             assignAction(){
-                // POST /solicitudes/{id}/assign
                 const base = @json(url('solicitudes/__ID__/assign'));
                 return base.replace('__ID__', this.assignId ?? '');
             },
@@ -439,8 +483,8 @@
             paginate: { previous: '<', next: '>' }
           },
           columnDefs: [
-            { targets:[0,1,2,3,4,5,6,7], className:'align-middle' },
-            { targets:[7], orderable:false }
+            { targets:[0,1,2,3,4,5,6,7,8], className:'align-middle' },
+            { targets:[8], orderable:false } // acciones
           ]
         });
 

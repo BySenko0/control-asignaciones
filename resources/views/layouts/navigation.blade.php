@@ -92,10 +92,6 @@
                 </div>
 
                 {{-- Enlaces placeholder (sin rutas) --}}
-                <a href="#" class="group flex items-center gap-3 rounded-lg px-3 py-2 {{ $linkClass }}">
-                    <svg class="w-5 h-5 opacity-70" viewBox="0 0 24 24" fill="currentColor"><path d="M7 3h10v2H7zM4 7h16v13H4z"/></svg>
-                    <span x-show="sidebarOpen" class="truncate">Equipos del cliente</span>
-                </a>
 
                 <a href="{{ route('clientes.seleccion') }}" class="group flex items-center gap-3 rounded-lg px-3 py-2 {{ $linkClass }}">
                     <svg class="w-5 h-5 opacity-70" viewBox="0 0 24 24" fill="currentColor"><path d="M5 3h14v18H5zM8 7h8v2H8zM8 11h8v2H8zM8 15h8v2H8z"/></svg>
@@ -122,10 +118,6 @@
                     <span x-show="sidebarOpen" class="truncate">Checklist-plantillas</span>
                 </a>
 
-                <a href="#" class="group flex items-center gap-3 rounded-lg px-3 py-2 {{ $linkClass }}">
-                    <svg class="w-5 h-5 opacity-70" viewBox="0 0 24 24" fill="currentColor"><path d="M22 12l-4 4-4-4 4-4 4 4zM2 12l4 4 4-4-4-4-4 4z"/></svg>
-                    <span x-show="sidebarOpen" class="truncate">Mantenimientos preventivos</span>
-                </a>
 
                 <a href="#" class="group flex items-center gap-3 rounded-lg px-3 py-2 {{ $linkClass }}">
                     <svg class="w-5 h-5 opacity-70" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h16v16H4zM8 8h8v2H8zM8 12h8v2H8z"/></svg>

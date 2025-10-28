@@ -15,28 +15,30 @@ class Solicitud extends Model
 
     protected $fillable = [
         'cliente_id',
-        'asignado_a',     // ← usa este nombre en controladores si tu columna se llama así
+        'asignado_a',          // si renombraste a asignado_id, cambia aquí y en la relación
         'no_serie',
         'dispositivo',
         'modelo',
         'plantilla_id',
         'tipo_servicio',
-        'estado',         // pendiente | en_proceso | finalizado
+        'estado',              // pendiente | en_proceso | finalizado
         'descripcion',
+        'fecha_vencimiento',   // nullable
     ];
 
     protected $casts = [
-        'cliente_id'   => 'integer',
-        'asignado_a'   => 'integer',
-        'plantilla_id' => 'integer',
+        'cliente_id'        => 'integer',
+        'asignado_a'        => 'integer',
+        'plantilla_id'      => 'integer',
+        'fecha_vencimiento' => 'date',   // Carbon|null
     ];
 
-    // Estados
+    // === Estados (como están en tu BD) ===
     public const PENDIENTE   = 'pendiente';
     public const EN_PROCESO  = 'en_proceso';
     public const FINALIZADO  = 'finalizado';
 
-    // Relaciones base
+    // === Relaciones ===
     public function cliente()
     {
         return $this->belongsTo(\App\Models\ClientesAsignacion::class, 'cliente_id');
@@ -44,7 +46,7 @@ class Solicitud extends Model
 
     public function asignado()
     {
-        return $this->belongsTo(\App\Models\User::class, 'asignado_a'); // si cambias a asignado_id, ajústalo aquí
+        return $this->belongsTo(\App\Models\User::class, 'asignado_a'); // o 'asignado_id'
     }
 
     public function plantilla()
@@ -63,7 +65,7 @@ class Solicitud extends Model
         return $this->pasos()->where('hecho', true);
     }
 
-    // Helpers de avance (opcionales, útiles en Blade)
+    // === Helpers de avance ===
     public function getTotalPasosAttribute(): int
     {
         return $this->plantilla ? (int) $this->plantilla->pasos()->count() : 0;
@@ -77,9 +79,30 @@ class Solicitud extends Model
         return (int) floor(($hechos / $total) * 100);
     }
 
+    // === Helpers de vencimiento ===
+    public function getEstaVencidaAttribute(): bool
+    {
+        if (!$this->fecha_vencimiento) return false;
+        if ($this->estado === self::FINALIZADO) return false;
+        return $this->fecha_vencimiento->isBefore(today());
+    }
+
+    public function getVenceHoyAttribute(): bool
+    {
+        if (!$this->fecha_vencimiento) return false;
+        if ($this->estado === self::FINALIZADO) return false;
+        return $this->fecha_vencimiento->isSameDay(today());
+    }
+
+    public function getDiasRestantesAttribute(): ?int
+    {
+        if (!$this->fecha_vencimiento) return null;
+        return today()->diffInDays($this->fecha_vencimiento, false); // negativo si ya venció
+    }
+
     /**
      * Sincroniza solicitud_pasos con los pasos actuales de la plantilla.
-     * Crea los faltantes y elimina los que ya no existen en la plantilla.
+     * Crea los faltantes y elimina los que ya no existan en la plantilla.
      */
     public function syncPasosFromPlantilla(): void
     {
@@ -96,8 +119,8 @@ class Solicitud extends Model
 
         foreach ($ids as $pid) {
             SolicitudPaso::firstOrCreate([
-                'solicitud_id'       => $this->id,
-                'plantilla_paso_id'  => $pid,
+                'solicitud_id'      => $this->id,
+                'plantilla_paso_id' => $pid,
             ]);
         }
 
@@ -106,7 +129,7 @@ class Solicitud extends Model
             ->delete();
     }
 
-    // Scopes útiles
+    // === Scopes de búsqueda/filtrado ===
     public function scopeDelCliente($q, $clienteId)
     {
         return $clienteId ? $q->where('cliente_id', $clienteId) : $q;
@@ -136,5 +159,44 @@ class Solicitud extends Model
     public function scopeAsignadoA($q, $userId)
     {
         return $q->where('asignado_a', $userId); // cambia a 'asignado_id' si renombras la columna
+    }
+
+    // === Scopes de vencimiento (para KPIs/tableros) ===
+    public function scopeConVencimiento($q)
+    {
+        return $q->whereNotNull('fecha_vencimiento');
+    }
+
+    public function scopeSinVencimiento($q)
+    {
+        return $q->whereNull('fecha_vencimiento');
+    }
+
+    public function scopeVencidas($q)
+    {
+        return $q->conVencimiento()
+                 ->whereIn('estado', [self::PENDIENTE, self::EN_PROCESO])
+                 ->whereDate('fecha_vencimiento', '<', today());
+    }
+
+    public function scopeVenceHoy($q)
+    {
+        return $q->conVencimiento()
+                 ->whereIn('estado', [self::PENDIENTE, self::EN_PROCESO])
+                 ->whereDate('fecha_vencimiento', today());
+    }
+
+    public function scopePorVencer($q, int $dias = 7)
+    {
+        return $q->conVencimiento()
+                 ->whereIn('estado', [self::PENDIENTE, self::EN_PROCESO])
+                 ->whereBetween('fecha_vencimiento', [today(), today()->addDays($dias)]);
+    }
+
+    public function scopeOrdenVencimiento($q)
+    {
+        // Primero con fecha, ordenados por más próximo; al final los que no tienen fecha
+        return $q->orderByRaw('fecha_vencimiento IS NULL ASC')
+                 ->orderBy('fecha_vencimiento');
     }
 }

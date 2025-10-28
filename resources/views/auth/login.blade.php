@@ -5,7 +5,7 @@
             <div class="mx-auto rounded-2xl border border-gray-300 bg-white shadow-sm p-8 sm:p-10">
                 {{-- Logo --}}
                 <div class="flex flex-col items-center gap-2">
-                    <img src="{{ asset('img/virtuality-logo.png') }}" alt="Virtuality" class="h-16">
+                    <img src="{{ asset('img/virtuality-logo.jpg') }}" alt="Virtuality" class="h-16">
                     <h1 class="text-3xl font-semibold tracking-tight">Login</h1>
                 </div>
 

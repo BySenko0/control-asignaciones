@@ -13,6 +13,7 @@ class OrdenesServicioController extends Controller
 {
     /**
      * Listado por estado: pendiente | en_proceso | finalizado
+     * Además acepta "vencidas" como filtro especial (fecha_vencimiento < hoy y estado != finalizado)
      */
     public function index(Request $request, string $estado)
     {
@@ -25,7 +26,6 @@ class OrdenesServicioController extends Controller
         $isVirt  = $user->hasRole('virtuality');
 
         $qb = Solicitud::with(['cliente:id,nombre_cliente','asignado:id,name','plantilla:id,nombre'])
-            ->where('estado', $estado)
             ->when($q, fn($qq)=>$qq->where(function($w) use($q){
                 $w->where('no_serie','like',"%{$q}%")
                   ->orWhere('dispositivo','like',"%{$q}%")
@@ -41,6 +41,19 @@ class OrdenesServicioController extends Controller
                     ->whereColumn('plantilla_id','solicitudes.plantilla_id')
             ]);
 
+        // Filtro principal por "estado" o por "vencidas"
+        if ($estado === 'vencidas') {
+            // No finalizadas, con fecha vencida
+            $qb->whereIn('estado', ['pendiente','en_proceso'])
+               ->whereNotNull('fecha_vencimiento')
+               ->whereDate('fecha_vencimiento','<', today())
+               ->orderBy('fecha_vencimiento'); // más urgente arriba
+        } else {
+            // estados reales en BD
+            $qb->where('estado', $estado)
+               ->orderByDesc('id');
+        }
+
         // Visibilidad por rol
         if ($isVirt && !$isAdmin) {
             $qb->where('asignado_a', $user->id);
@@ -48,11 +61,17 @@ class OrdenesServicioController extends Controller
             $qb->where('asignado_a', $user->id);
         }
 
-        $solicitudes = $qb->orderByDesc('id')->paginate(12)->withQueryString();
+        $solicitudes = $qb->paginate(12)->withQueryString();
         $clientes    = ClientesAsignacion::orderBy('nombre_cliente')->get(['id','nombre_cliente']);
 
-        $titulos = ['pendiente'=>'Pendientes','en_proceso'=>'En proceso','finalizado'=>'Resueltas'];
-        $titulo  = $titulos[$estado] ?? ucfirst($estado);
+        // Títulos de pestaña
+        $titulo = match ($estado) {
+            'pendiente'  => 'Pendientes',
+            'en_proceso' => 'En proceso',
+            'finalizado' => 'Finalizadas',
+            'vencidas'   => 'Vencidas',
+            default      => ucfirst($estado),
+        };
 
         return view('ordenes.index', compact(
             'estado','titulo','solicitudes','q','clienteId','clientes','soloMias','isAdmin','isVirt'
@@ -87,7 +106,7 @@ class OrdenesServicioController extends Controller
             ]);
         }
 
-        // Cargar relaciones y conteo usando 'numero'
+        // Cargar relaciones y conteo
         $solicitud->load([
             'plantilla.pasos' => fn($q) => $q->orderBy('numero'),
             'pasos.paso',
@@ -129,7 +148,8 @@ class OrdenesServicioController extends Controller
 
         if ($total > 0 && $hechos >= $total) {
             $solicitud->update(['estado' => 'finalizado']);
-            return redirect()->route('ordenes.resueltas')->with('ok', 'Orden finalizada automáticamente.');
+            return redirect()->route('ordenes.finalizadas') // <— ruta corregida
+                             ->with('ok', 'Orden finalizada automáticamente.');
         }
 
         return back()->with('ok', $nuevo ? 'Paso marcado.' : 'Paso desmarcado.');
@@ -148,7 +168,8 @@ class OrdenesServicioController extends Controller
 
         if ($total > 0 && $hechos >= $total) {
             $solicitud->update(['estado' => 'finalizado']);
-            return redirect()->route('ordenes.resueltas')->with('ok', 'Orden finalizada.');
+            return redirect()->route('ordenes.finalizadas') // <— ruta corregida
+                             ->with('ok', 'Orden finalizada.');
         }
 
         return back()->with('error', 'Aún faltan pasos por completar.');
