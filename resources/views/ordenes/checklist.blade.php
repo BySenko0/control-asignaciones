@@ -21,6 +21,13 @@
             </h1>
 
             <div class="flex gap-2">
+                @if($solicitud->estado === \App\Models\Solicitud::FINALIZADO)
+                    <a href="{{ route('ordenes.ticket', $solicitud) }}"
+                       class="rounded-xl border border-emerald-300 text-emerald-700 px-4 py-2 hover:bg-emerald-50"
+                       target="_blank">
+                        Ticket PDF
+                    </a>
+                @endif
                 <a href="{{ url('/ordenes/en_proceso') }}"
                    class="rounded-xl border px-4 py-2 bg-white text-gray-700 hover:bg-gray-50">Volver</a>
 

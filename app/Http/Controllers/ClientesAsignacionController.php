@@ -18,6 +18,7 @@ class ClientesAsignacionController extends Controller
                 'nombre_empresa',
                 'direccion',
                 'responsable',
+                'telefono',
                 'rfc',
                 'imagen',
                 'correo_empresa',
@@ -27,7 +28,8 @@ class ClientesAsignacionController extends Controller
                     $sq->where('rfc', 'like', "%$q%")
                        ->orWhere('nombre_cliente', 'like', "%$q%")
                        ->orWhere('nombre_empresa', 'like', "%$q%")
-                       ->orWhere('correo_empresa', 'like', "%$q%");
+                       ->orWhere('correo_empresa', 'like', "%$q%")
+                       ->orWhere('telefono', 'like', "%$q%");
                 });
             })
             ->orderBy('nombre_cliente')

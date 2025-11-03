@@ -105,6 +105,9 @@ Route::middleware(['auth','role:admin|virtuality'])->group(function () {
     // Finalizar manualmente (opcional)
     Route::post('/ordenes/{solicitud}/finalizar', [OrdenesServicioController::class,'finalizar'])
         ->name('ordenes.finalizar');
+
+    Route::get('/ordenes/{solicitud}/ticket', [OrdenesServicioController::class,'ticket'])
+        ->name('ordenes.ticket');
 });
 
 // Solo admin

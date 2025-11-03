@@ -8,7 +8,7 @@
                     type="text"
                     name="q"
                     value="{{ $q ?? '' }}"
-                    placeholder="Buscar por RFC, nombre, empresa o correo…"
+                    placeholder="Buscar por RFC, nombre, empresa, correo o teléfono…"
                     class="w-full rounded-xl border border-gray-300 bg-white pl-11 pr-4 py-2.5
                            focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
             </div>
@@ -33,6 +33,7 @@
                             <div class="truncate font-medium text-gray-900">{{ $c->nombre_cliente }}</div>
                             <div class="truncate text-xs text-gray-500">{{ $c->nombre_empresa }}</div>
                             <div class="truncate text-xs text-gray-400">{{ $c->correo_empresa }}</div>
+                            <div class="truncate text-xs text-gray-400">{{ $c->telefono }}</div>
                         </div>
 
                         <a href="{{ route('clientes.equipos-solicitudes', $c->id) }}"

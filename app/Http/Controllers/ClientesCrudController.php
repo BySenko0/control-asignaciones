@@ -17,7 +17,8 @@ class ClientesCrudController extends Controller
                     $sq->where('rfc', 'like', "%$q%")
                        ->orWhere('nombre_cliente', 'like', "%$q%")
                        ->orWhere('nombre_empresa', 'like', "%$q%")
-                       ->orWhere('correo_empresa', 'like', "%$q%");
+                       ->orWhere('correo_empresa', 'like', "%$q%")
+                       ->orWhere('telefono', 'like', "%$q%");
                 });
             })
             ->orderBy('nombre_cliente')
@@ -68,6 +69,7 @@ class ClientesCrudController extends Controller
             'nombre_empresa'  => ['nullable','string','max:150'],
             'direccion'       => ['nullable','string','max:255'],
             'responsable'     => ['nullable','string','max:150'],
+            'telefono'        => ['nullable','string','max:30'],
             'rfc'             => ['nullable','string','max:50'],
             'imagen'          => ['nullable','string','max:255'],   // usa ruta/url; si quieres upload lo agregamos luego
             'correo_empresa'  => ['nullable','email','max:150'],

@@ -122,6 +122,14 @@
                                 }}
                             </a>
 
+                            @if($s->estado === 'finalizado')
+                                <a href="{{ route('ordenes.ticket', $s) }}"
+                                   class="rounded-lg border border-emerald-300 text-emerald-700 px-3 py-1.5 hover:bg-emerald-50"
+                                   target="_blank">
+                                    Ticket PDF
+                                </a>
+                            @endif
+
                             {{-- Editar (solo cuando está pendiente) --}}
                             @if($estado==='pendiente')
                                 <a href="{{ route('solicitudes.index', ['q'=>$s->no_serie, 'open'=>$s->id]) }}"

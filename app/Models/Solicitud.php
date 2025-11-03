@@ -23,6 +23,7 @@ class Solicitud extends Model
         'tipo_servicio',
         'estado',              // pendiente | en_proceso | finalizado
         'descripcion',
+        'ticket_pdf_path',
         'fecha_vencimiento',   // nullable
     ];
 

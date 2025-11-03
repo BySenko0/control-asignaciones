@@ -8,9 +8,14 @@ use App\Models\PlantillaPaso;
 use App\Models\SolicitudPaso;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use App\Services\TicketPdfGenerator;
 
 class OrdenesServicioController extends Controller
-{
+{ 
+    public function __construct(private TicketPdfGenerator $ticketPdfGenerator)
+    {
+    }
     /**
      * Listado por estado: pendiente | en_proceso | finalizado
      * Además acepta "vencidas" como filtro especial (fecha_vencimiento < hoy y estado != finalizado)
@@ -147,9 +152,9 @@ class OrdenesServicioController extends Controller
         $hechos = SolicitudPaso::where('solicitud_id', $solicitud->id)->where('hecho', true)->count();
 
         if ($total > 0 && $hechos >= $total) {
-            $solicitud->update(['estado' => 'finalizado']);
-            return redirect()->route('ordenes.finalizadas') // <— ruta corregida
-                             ->with('ok', 'Orden finalizada automáticamente.');
+            $this->finalizeSolicitudWithTicket($solicitud);
+            return redirect()->route('ordenes.resueltas')
+                             ->with('ok', 'Orden finalizada automáticamente. Ticket generado.');
         }
 
         return back()->with('ok', $nuevo ? 'Paso marcado.' : 'Paso desmarcado.');
@@ -167,11 +172,38 @@ class OrdenesServicioController extends Controller
         $hechos = SolicitudPaso::where('solicitud_id', $solicitud->id)->where('hecho', true)->count();
 
         if ($total > 0 && $hechos >= $total) {
-            $solicitud->update(['estado' => 'finalizado']);
-            return redirect()->route('ordenes.finalizadas') // <— ruta corregida
-                             ->with('ok', 'Orden finalizada.');
+            $this->finalizeSolicitudWithTicket($solicitud);
+            return redirect()->route('ordenes.resueltas')
+                             ->with('ok', 'Orden finalizada y ticket generado.');
         }
 
         return back()->with('error', 'Aún faltan pasos por completar.');
+    }
+
+    public function ticket(Solicitud $solicitud)
+    {
+        $user = Auth::user();
+        abort_unless($user->hasRole('admin') || $solicitud->asignado_a === $user->id, 403);
+        abort_unless($solicitud->estado === Solicitud::FINALIZADO, 404);
+
+        if (!$solicitud->ticket_pdf_path || !Storage::disk('local')->exists($solicitud->ticket_pdf_path)) {
+            $path = $this->ticketPdfGenerator->generate($solicitud);
+            $solicitud->forceFill(['ticket_pdf_path' => $path])->save();
+        }
+
+        return Storage::disk('local')->download(
+            $solicitud->ticket_pdf_path,
+            sprintf('ticket-orden-%d.pdf', $solicitud->id)
+        );
+    }
+
+    private function finalizeSolicitudWithTicket(Solicitud $solicitud): void
+    {
+        $solicitud->refresh();
+        $path = $this->ticketPdfGenerator->generate($solicitud);
+        $solicitud->forceFill([
+            'estado' => Solicitud::FINALIZADO,
+            'ticket_pdf_path' => $path,
+        ])->save();
     }
 }
