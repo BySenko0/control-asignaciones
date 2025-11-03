@@ -4,13 +4,18 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use App\Models\User;
 use App\Models\Solicitud;
 use App\Models\ClientesAsignacion;
 use App\Models\Plantilla;
+use App\Services\TicketPdfGenerator;
 
 class SolicitudesClienteController extends Controller
-{
+{ 
+    public function __construct(private TicketPdfGenerator $ticketPdfGenerator)
+    {
+    }
     public function index(Request $request, ?ClientesAsignacion $cliente = null)
     {
         $q         = trim((string) $request->get('q', ''));
@@ -69,7 +74,9 @@ class SolicitudesClienteController extends Controller
             $data['descripcion'] = $p->descripcion;
         }
 
-        Solicitud::create($data);
+        $solicitud = Solicitud::create($data);
+
+        $this->ensureTicketIfFinal($solicitud, true);
 
         return back()->with('ok', 'Solicitud creada.');
     }
@@ -122,6 +129,10 @@ class SolicitudesClienteController extends Controller
             $mensaje .= ' Estado reiniciado a pendiente por cambio de plantilla.';
         }
 
+        if ($solicitud->estado === Solicitud::FINALIZADO) {
+            $this->ensureTicketIfFinal($solicitud, $oldEstado !== Solicitud::FINALIZADO);
+        }
+
         return back()->with('ok', $mensaje);
     }
 
@@ -168,5 +179,19 @@ class SolicitudesClienteController extends Controller
         $solicitud->save();
 
         return back()->with('ok', 'Solicitud tomada.');
+}
+
+    private function ensureTicketIfFinal(Solicitud $solicitud, bool $force = false): void
+    {
+        if ($solicitud->estado !== Solicitud::FINALIZADO) {
+            return;
+        }
+
+        if (!$force && $solicitud->ticket_pdf_path && Storage::disk('local')->exists($solicitud->ticket_pdf_path)) {
+            return;
+        }
+
+        $path = $this->ticketPdfGenerator->generate($solicitud);
+        $solicitud->forceFill(['ticket_pdf_path' => $path])->save();
     }
 }

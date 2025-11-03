@@ -60,7 +60,7 @@
             <span class="icon">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
             </span>
-            <input id="searchClientes" type="text" placeholder="Buscar por RFC, nombre, empresa o correo…"
+            <input id="searchClientes" type="text" placeholder="Buscar por RFC, nombre, empresa, correo o teléfono…"
                    class="w-full focus:outline-none focus:ring-2 focus:ring-indigo-500">
             @if(!empty($q))
               <a class="clear" href="{{ route('clientes.index') }}">Limpiar</a>
@@ -77,6 +77,7 @@
                         <th class="text-left">Empresa</th>
                         <th class="text-left">Dirección</th>
                         <th class="text-left">Responsable</th>
+                        <th class="text-left">Teléfono</th>
                         <th class="text-left">RFC</th>
                         <th class="text-left">Correo empresa</th>
                         <th class="text-right">Acciones</th>
@@ -111,6 +112,7 @@
                         <td>{{ $c->nombre_empresa }}</td>
                         <td>{{ $c->direccion }}</td>
                         <td>{{ $c->responsable }}</td>
+                        <td>{{ $c->telefono ?? '—' }}</td>
                         <td class="uppercase tracking-wide">{{ $c->rfc }}</td>
                         <td>{{ $c->correo_empresa }}</td>
                         <td>
@@ -131,7 +133,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">Sin registros.</td></tr>
+                    <tr><td colspan="9" class="px-4 py-8 text-center text-gray-500">Sin registros.</td></tr>
                 @endforelse
                 </tbody>
             </table>
@@ -192,6 +194,11 @@
                                class="mt-1 w-full rounded-xl border-gray-300">
                     </div>
                     <div>
+                        <label class="text-sm text-gray-700">Teléfono</label>
+                        <input name="telefono" x-model="form.telefono"
+                               class="mt-1 w-full rounded-xl border-gray-300">
+                    </div>
+                    <div>
                         <label class="text-sm text-gray-700">Correo de la empresa</label>
                         <input type="email" name="correo_empresa" x-model="form.correo_empresa"
                                class="mt-1 w-full rounded-xl border-gray-300">
@@ -224,11 +231,11 @@
         return {
             modalOpen:false,
             mode:'create',
-            form:{ id:null,nombre_cliente:'',nombre_empresa:'',direccion:'',responsable:'',rfc:'',imagen:'',correo_empresa:'' },
-            openCreate(){ this.mode='create'; this.form={ id:null,nombre_cliente:'',nombre_empresa:'',direccion:'',responsable:'',rfc:'',imagen:'',correo_empresa:'' }; this.modalOpen=true; },
+            form:{ id:null,nombre_cliente:'',nombre_empresa:'',direccion:'',responsable:'',telefono:'',rfc:'',imagen:'',correo_empresa:'' },
+            openCreate(){ this.mode='create'; this.form={ id:null,nombre_cliente:'',nombre_empresa:'',direccion:'',responsable:'',telefono:'',rfc:'',imagen:'',correo_empresa:'' }; this.modalOpen=true; },
             openEdit(item){
                 this.mode='edit';
-                this.form={ id:item.id,nombre_cliente:item.nombre_cliente ?? '',nombre_empresa:item.nombre_empresa ?? '',direccion:item.direccion ?? '',responsable:item.responsable ?? '',rfc:item.rfc ?? '',imagen:item.imagen ?? '',correo_empresa:item.correo_empresa ?? '' };
+                this.form={ id:item.id,nombre_cliente:item.nombre_cliente ?? '',nombre_empresa:item.nombre_empresa ?? '',direccion:item.direccion ?? '',responsable:item.responsable ?? '',telefono:item.telefono ?? '',rfc:item.rfc ?? '',imagen:item.imagen ?? '',correo_empresa:item.correo_empresa ?? '' };
                 this.modalOpen=true;
             },
             close(){ this.modalOpen=false; },
@@ -261,8 +268,8 @@
             paginate: { previous: '<', next: '>' }
           },
           columnDefs: [
-            { targets:[0,7], className:'align-middle' },
-            { targets:[1,2,3,4,5,6], className:'align-middle' }
+            { targets:[0,8], className:'align-middle' },
+            { targets:[1,2,3,4,5,6,7], className:'align-middle' }
           ]
         });
 

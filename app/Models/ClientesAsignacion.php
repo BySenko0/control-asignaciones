@@ -13,6 +13,7 @@ class ClientesAsignacion extends Model
         'nombre_empresa',
         'direccion',
         'responsable',
+        'telefono',
         'rfc',
         'imagen',
         'correo_empresa',
