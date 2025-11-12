@@ -123,7 +123,7 @@
                             </a>
 
                             @if($s->estado === 'finalizado')
-                                <a href="{{ route('ordenes.ticket', $s) }}"
+                                <a href="{{ route('ticket.public', $s) }}"
                                    class="rounded-lg border border-emerald-300 text-emerald-700 px-3 py-1.5 hover:bg-emerald-50"
                                    target="_blank">
                                     Ticket PDF

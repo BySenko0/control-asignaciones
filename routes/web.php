@@ -21,6 +21,10 @@ Route::get('/dashboard', DashboardController::class)
     ->middleware(['auth','verified'])
     ->name('dashboard');
 
+Route::get('/ticket/{solicitud}', [OrdenesServicioController::class, 'publicTicket'])
+    ->whereNumber('solicitud')
+    ->name('ticket.public');
+
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
