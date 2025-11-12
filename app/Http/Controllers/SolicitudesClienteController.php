@@ -64,8 +64,10 @@ class SolicitudesClienteController extends Controller
             // Si quieres evitar pasado: ['nullable','date','after_or_equal:today']
         ]);
 
-        // Normalizar fecha_vencimiento: "" -> null
-        $data['fecha_vencimiento'] = $data['fecha_vencimiento'] ?: null;
+        
+        // Normalizar fecha_vencimiento: si no viene en el request, dejarla en null
+        $data['fecha_vencimiento'] = $data['fecha_vencimiento'] ?? null;
+
 
         // Rellenar nombre/descripcion desde la plantilla elegida
         $p = Plantilla::findOrFail($data['plantilla_id']);

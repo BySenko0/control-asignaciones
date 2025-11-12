@@ -16,15 +16,15 @@ class UsuariosController extends Controller
 
         $usuarios = User::query()
             ->when($q, function ($qr) use ($q) {
-                $qr->where(fn($w) =>
+                $qr->where(function ($w) use ($q) {
                     $w->where('name', 'like', "%{$q}%")
-                      ->orWhere('email', 'like', "%{$q}%")
-                );
+                      ->orWhere('email', 'like', "%{$q}%");
+                });
             })
             ->with('roles')
             ->whereHas('roles', fn ($r) => $r->whereIn('name', $rolesPermitidos))
             ->orderBy('name')
-            ->get(); // DataTables hace la paginación en cliente
+            ->get(); // DataTables paginará en el cliente
 
         return view('usuarios.index', compact('usuarios', 'q'));
     }
@@ -40,8 +40,8 @@ class UsuariosController extends Controller
         ]);
 
         $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
+            'name'     => $data['name'],
+            'email'    => $data['email'],
             'password' => Hash::make($data['password']),
         ]);
 
@@ -64,12 +64,14 @@ class UsuariosController extends Controller
 
         $usuario->name  = $data['name'];
         $usuario->email = $data['email'];
+
         if (!empty($data['password'])) {
             $usuario->password = Hash::make($data['password']);
         }
+
         $usuario->save();
 
-        // Si se envía roles[], reemplaza; si no se envía, conserva.
+        // Si se envía roles[], reemplaza; si no se envía, conserva
         if ($request->has('roles')) {
             $usuario->syncRoles($data['roles'] ?? []);
         }
