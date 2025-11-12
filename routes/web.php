@@ -110,9 +110,11 @@ Route::middleware(['auth','role:admin|virtuality'])->group(function () {
         ->name('ordenes.ticket');
 });
 
-// Solo admin
+// Solo admin: usuarios (index + crear + actualizar)
 Route::middleware(['auth','role:admin'])->group(function () {
-    Route::get('/usuarios', [UsuariosController::class, 'index'])->name('usuarios.index');
+    Route::get('/usuarios',                 [UsuariosController::class, 'index'])->name('usuarios.index');
+    Route::post('/usuarios',                [UsuariosController::class, 'store'])->name('usuarios.store');
+    Route::put('/usuarios/{usuario}',       [UsuariosController::class, 'update'])->name('usuarios.update');
 });
 
 require __DIR__.'/auth.php';

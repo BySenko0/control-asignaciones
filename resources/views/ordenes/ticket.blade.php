@@ -40,54 +40,39 @@
                 <div class="label">Cliente</div>
                 <div class="value">{{ $solicitud->cliente->nombre_cliente ?? '—' }}</div>
             </div>
+            <br>
             <div class="item">
                 <div class="label">Asignado a</div>
                 <div class="value">{{ $solicitud->asignado->name ?? '—' }}</div>
             </div>
+            <br>
             <div class="item">
                 <div class="label">No. de serie</div>
                 <div class="value">{{ $solicitud->no_serie ?? '—' }}</div>
             </div>
+            <br>
             <div class="item">
                 <div class="label">Dispositivo</div>
                 <div class="value">{{ trim($solicitud->dispositivo.' '.$solicitud->modelo) }}</div>
             </div>
+            <br>
             <div class="item">
                 <div class="label">Tipo de servicio</div>
                 <div class="value">{{ $solicitud->tipo_servicio }}</div>
             </div>
+            <br>
             <div class="item">
                 <div class="label">Cliente teléfono</div>
                 <div class="value">{{ $solicitud->cliente->telefono ?? '—' }}</div>
+                <br>
             </div>
         </div>
 
-        <div class="section-title">Resumen de la plantilla</div>
-        <div class="steps">
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: 40px;">#</th>
-                        <th>Descripción del paso</th>
-                        <th style="width: 120px;">Estado</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($solicitud->plantilla->pasos ?? [] as $paso)
-                        @php($registro = $solicitud->pasos->firstWhere('plantilla_paso_id', $paso->id))
-                        <tr>
-                            <td>{{ $paso->numero }}</td>
-                            <td>
-                                <div>{{ $paso->titulo }}</div>
-                                @if(!empty($registro?->notas))
-                                    <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Nota: {{ $registro->notas }}</div>
-                                @endif
-                            </td>
-                            <td>{{ $registro && $registro->hecho ? 'Completado' : 'Pendiente' }}</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
+        <div class="section-title">Servicio realizado</div>
+        <div class="service">
+            <p>
+                {!! nl2br(e($solicitud->descripcion ?? 'No se registró la descripción del servicio.')) !!}
+            </p>
         </div>
 
         <div class="footer">

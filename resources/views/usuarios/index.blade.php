@@ -1,24 +1,45 @@
 <x-app-layout>
-  <div class="mx-auto max-w-7xl space-y-6">
-    <div>
-      <h1 class="text-2xl font-semibold text-gray-800">Usuarios</h1>
-      <p class="text-sm text-gray-500">Gestiona los usuarios con acceso al sistema.</p>
+  {{-- Estado Alpine + listener para abrir modal desde jQuery --}}
+  <div
+    class="mx-auto max-w-7xl space-y-6"
+    x-data="{
+      openCreate:false,
+      openEdit:false,
+      editing:{},
+      init() {
+        window.addEventListener('open-edit', (e) => {
+          this.editing = e.detail
+          this.openEdit = true
+        })
+      }
+    }"
+  >
+    <div class="flex items-start justify-between">
+      <div>
+        <h1 class="text-2xl font-semibold text-gray-800">Usuarios</h1>
+        <p class="text-sm text-gray-500">Gestiona los usuarios con acceso al sistema.</p>
+      </div>
+
+      {{-- Botón Agregar (solo admin) --}}
+      @role('admin')
+      <button @click="openCreate=true"
+        class="inline-flex items-center gap-2 rounded-lg border border-indigo-600 px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        Agregar usuario
+      </button>
+      @endrole
     </div>
 
     {{-- DataTables + estilos --}}
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
-
     <style>
-      /* --- wrapper --- */
       .card { border:1px solid #E5E7EB;border-radius:1rem;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.04) }
-
-      /* --- buscador --- */
       .search-wrap{position:relative}
       .search-wrap .icon{position:absolute;inset-inline-start:.9rem;inset-block:0;display:flex;align-items:center;color:#9CA3AF}
       .search-wrap input{height:2.75rem;padding:.625rem .75rem .625rem 2.5rem;border:1px solid #D1D5DB;border-radius:.75rem}
       .search-wrap a.clear{position:absolute;inset-inline-end:.5rem;inset-block:0;display:flex;align-items:center;padding-inline:.5rem;color:#6B7280}
-
-      /* --- tabla “card rows” --- */
       table.dataTable { border-collapse:separate; border-spacing:0 10px !important; background:transparent }
       table.dataTable thead th{
         position:sticky; top:0; z-index:10;
@@ -26,22 +47,13 @@
         padding:.9rem 1rem; border:none !important; box-shadow:inset 0 -1px 0 #E5E7EB;
       }
       table.dataTable tbody tr{ background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.06); border-radius:.75rem }
-      table.dataTable tbody tr td{
-        padding:1rem 1rem; border-top:1px solid #F3F4F6; border-bottom:1px solid #F3F4F6;
-      }
+      table.dataTable tbody tr td{ padding:1rem 1rem; border-top:1px solid #F3F4F6; border-bottom:1px solid #F3F4F6; }
       table.dataTable tbody tr td:first-child{ border-left:1px solid #F3F4F6; border-top-left-radius:.75rem; border-bottom-left-radius:.75rem }
       table.dataTable tbody tr td:last-child{ border-right:1px solid #F3F4F6; border-top-right-radius:.75rem; border-bottom-right-radius:.75rem }
       table.dataTable tbody tr:hover{ background:#F9FAFB }
-
-      /* --- badges rol --- */
-      .role-badge{
-        display:inline-flex;align-items:center;gap:.4rem;
-        padding:.18rem .55rem;border-radius:9999px;font-size:.72rem;font-weight:600
-      }
+      .role-badge{display:inline-flex;align-items:center;gap:.4rem;padding:.18rem .55rem;border-radius:9999px;font-size:.72rem;font-weight:600}
       .role-admin{ background:#EEF2FF; color:#4338CA }
       .role-virt{ background:#E0F2FE; color:#075985 }
-
-      /* --- length + paginación --- */
       .length-menu .dataTables_length{display:flex;align-items:center;gap:.5rem}
       .length-menu select{
         appearance:none;-webkit-appearance:none;-moz-appearance:none;
@@ -56,12 +68,15 @@
       .dataTables_paginate .paginate_button.current{background:#111827;color:#fff;border-color:#111827}
       .dataTables_paginate .paginate_button:hover{background:#F3F4F6}
       .dataTables_info{display:none}
+      [x-cloak]{display:none !important;}
     </style>
 
     {{-- Buscador --}}
     <div class="search-wrap">
       <span class="icon">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
       </span>
       <input id="searchUsuarios" type="text" placeholder="Buscar por nombre, correo o rol..." class="w-full focus:outline-none focus:ring-2 focus:ring-indigo-500">
       @if(!empty($q))
@@ -77,6 +92,7 @@
             <th>Correo</th>
             <th>Roles</th>
             <th>Creado</th>
+            <th class="text-right">Acciones</th>
           </tr>
         </thead>
         <tbody class="text-gray-700">
@@ -100,10 +116,27 @@
                 @endif
               </td>
               <td class="text-gray-500">{{ optional($usuario->created_at)->format('d/m/Y') }}</td>
+              <td class="text-right">
+                @role('admin')
+                <button
+                  type="button"
+                  class="btn-edit inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                  data-id="{{ $usuario->id }}"
+                  data-name="{{ e($usuario->name) }}"
+                  data-email="{{ e($usuario->email) }}"
+                  data-roles='@json($usuario->roles->pluck("name"))'
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M4 21h4l11-11a2.828 2.828 0 10-4-4L4 17v4z" stroke="currentColor" stroke-width="1.5"/>
+                  </svg>
+                  Editar
+                </button>
+                @endrole
+              </td>
             </tr>
           @empty
             <tr>
-              <td colspan="4" class="py-10 text-center text-gray-500">No hay usuarios registrados.</td>
+              <td colspan="5" class="py-10 text-center text-gray-500">No hay usuarios registrados.</td>
             </tr>
           @endforelse
         </tbody>
@@ -116,11 +149,97 @@
         </div>
       </div>
     </div>
+
+    {{-- ===== Modal CREAR ===== --}}
+    @role('admin')
+    <div x-show="openCreate" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div @click.outside="openCreate=false" class="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
+        <h3 class="mb-4 text-lg font-semibold">Agregar usuario</h3>
+        <form method="POST" action="{{ route('usuarios.store') }}" class="space-y-4">
+          @csrf
+          <div>
+            <label class="text-sm font-medium text-gray-700">Nombre</label>
+            <input name="name" required class="mt-1 w-full rounded-md border-gray-300" />
+          </div>
+          <div>
+            <label class="text-sm font-medium text-gray-700">Correo</label>
+            <input type="email" name="email" required class="mt-1 w-full rounded-md border-gray-300" />
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-sm font-medium text-gray-700">Contraseña</label>
+              <input type="password" name="password" required class="mt-1 w-full rounded-md border-gray-300" />
+            </div>
+            <div>
+              <label class="text-sm font-medium text-gray-700">Confirmar</label>
+              <input type="password" name="password_confirmation" required class="mt-1 w-full rounded-md border-gray-300" />
+            </div>
+          </div>
+          <div>
+            <label class="text-sm font-medium text-gray-700">Rol</label>
+            <select name="roles[]" class="mt-1 w-full rounded-md border-gray-300" multiple size="2">
+              <option value="admin">admin</option>
+              <option value="virtuality">virtuality</option>
+            </select>
+            <p class="mt-1 text-xs text-gray-500">Ctrl/Cmd + clic para seleccionar varios.</p>
+          </div>
+          <div class="flex justify-end gap-3 pt-2">
+            <button type="button" @click="openCreate=false" class="rounded-md border px-4 py-2 text-sm">Cancelar</button>
+            <button class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Guardar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    @endrole
+
+    {{-- ===== Modal EDITAR ===== --}}
+    @role('admin')
+    <div x-show="openEdit" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div @click.outside="openEdit=false" class="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
+        <h3 class="mb-4 text-lg font-semibold">Editar usuario</h3>
+        <form method="POST" :action="`{{ url('usuarios') }}/${editing.id}`" class="space-y-4">
+          @csrf @method('PUT')
+          <div>
+            <label class="text-sm font-medium text-gray-700">Nombre</label>
+            <input name="name" x-model="editing.name" required class="mt-1 w-full rounded-md border-gray-300" />
+          </div>
+          <div>
+            <label class="text-sm font-medium text-gray-700">Correo</label>
+            <input type="email" name="email" x-model="editing.email" required class="mt-1 w-full rounded-md border-gray-300" />
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-sm font-medium text-gray-700">Nueva contraseña (opcional)</label>
+              <input type="password" name="password" class="mt-1 w-full rounded-md border-gray-300" />
+            </div>
+            <div>
+              <label class="text-sm font-medium text-gray-700">Confirmar</label>
+              <input type="password" name="password_confirmation" class="mt-1 w-full rounded-md border-gray-300" />
+            </div>
+          </div>
+          <div>
+            <label class="text-sm font-medium text-gray-700">Rol</label>
+            <select name="roles[]" class="mt-1 w-full rounded-md border-gray-300" multiple size="2">
+              <option value="admin" :selected="editing.roles?.includes('admin')">admin</option>
+              <option value="virtuality" :selected="editing.roles?.includes('virtuality')">virtuality</option>
+            </select>
+            <p class="mt-1 text-xs text-gray-500">Deja vacío para conservar roles o selecciona para reemplazar.</p>
+          </div>
+          <div class="flex justify-end gap-3 pt-2">
+            <button type="button" @click="openEdit=false" class="rounded-md border px-4 py-2 text-sm">Cancelar</button>
+            <button class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Actualizar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    @endrole
+
   </div>
 
   @push('scripts')
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <script>
       $(function () {
         const table = $('#tablaUsuarios').DataTable({
@@ -139,14 +258,27 @@
             paginate: { previous: '<', next: '>' }
           },
           columnDefs: [
-            { targets:[0,1,2,3], className:'align-middle' }
+            { targets:[0,1,2,3,4], className:'align-middle' },
+            { targets:[4], orderable:false, searchable:false } // Acciones
           ]
         });
 
-        // search externo
+        // Buscador externo
         $('#searchUsuarios').on('input', function(){ table.search(this.value).draw(); });
 
-        // precargar con ?q=
+        // Delegación para botón Editar (funciona aunque DataTables redibuje)
+        $(document).on('click', '.btn-edit', function () {
+          const $b = $(this);
+          const payload = {
+            id:    Number($b.data('id')),
+            name:  $b.data('name'),
+            email: $b.data('email'),
+            roles: JSON.parse($b.attr('data-roles') || '[]')
+          };
+          window.dispatchEvent(new CustomEvent('open-edit', { detail: payload }));
+        });
+
+        // Precargar búsqueda con ?q=
         @if(!empty($q))
           $('#searchUsuarios').val(@json($q));
           table.search(@json($q)).draw();
@@ -155,3 +287,4 @@
     </script>
   @endpush
 </x-app-layout>
+

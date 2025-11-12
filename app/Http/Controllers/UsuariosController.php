@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Hash;
 
 class UsuariosController extends Controller
 {
@@ -13,14 +15,65 @@ class UsuariosController extends Controller
         $rolesPermitidos = ['admin', 'virtuality'];
 
         $usuarios = User::query()
+            ->when($q, function ($qr) use ($q) {
+                $qr->where(fn($w) =>
+                    $w->where('name', 'like', "%{$q}%")
+                      ->orWhere('email', 'like', "%{$q}%")
+                );
+            })
             ->with('roles')
             ->whereHas('roles', fn ($r) => $r->whereIn('name', $rolesPermitidos))
             ->orderBy('name')
-            ->get(); // <-- sin paginate: DataTables paginará en el cliente
+            ->get(); // DataTables hace la paginación en cliente
 
-        return view('usuarios.index', [
-            'usuarios' => $usuarios,
-            'q'        => $q, // por si quieres precargar el input desde ?q=
+        return view('usuarios.index', compact('usuarios', 'q'));
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'name'     => ['required','string','max:255'],
+            'email'    => ['required','email','max:255','unique:users,email'],
+            'password' => ['required','confirmed','min:8'],
+            'roles'    => ['nullable','array'],
+            'roles.*'  => [Rule::in(['admin','virtuality'])],
         ]);
+
+        $user = User::create([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => Hash::make($data['password']),
+        ]);
+
+        if (!empty($data['roles'])) {
+            $user->syncRoles($data['roles']);
+        }
+
+        return back()->with('ok', 'Usuario creado correctamente.');
+    }
+
+    public function update(Request $request, User $usuario)
+    {
+        $data = $request->validate([
+            'name'     => ['required','string','max:255'],
+            'email'    => ['required','email','max:255', Rule::unique('users','email')->ignore($usuario->id)],
+            'password' => ['nullable','confirmed','min:8'],
+            'roles'    => ['nullable','array'],
+            'roles.*'  => [Rule::in(['admin','virtuality'])],
+        ]);
+
+        $usuario->name  = $data['name'];
+        $usuario->email = $data['email'];
+        if (!empty($data['password'])) {
+            $usuario->password = Hash::make($data['password']);
+        }
+        $usuario->save();
+
+        // Si se envía roles[], reemplaza; si no se envía, conserva.
+        if ($request->has('roles')) {
+            $usuario->syncRoles($data['roles'] ?? []);
+        }
+
+        return back()->with('ok', 'Usuario actualizado.');
     }
 }
