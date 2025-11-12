@@ -184,6 +184,17 @@ class OrdenesServicioController extends Controller
     {
         $user = Auth::user();
         abort_unless($user->hasRole('admin') || $solicitud->asignado_a === $user->id, 403);
+
+        return $this->downloadTicket($solicitud);
+    }
+
+    public function publicTicket(Solicitud $solicitud)
+    {
+        return $this->downloadTicket($solicitud);
+    }
+
+    private function downloadTicket(Solicitud $solicitud)
+    {
         abort_unless($solicitud->estado === Solicitud::FINALIZADO, 404);
 
         if (!$solicitud->ticket_pdf_path || !Storage::disk('local')->exists($solicitud->ticket_pdf_path)) {

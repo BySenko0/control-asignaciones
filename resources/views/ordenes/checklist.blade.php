@@ -22,7 +22,7 @@
 
             <div class="flex gap-2">
                 @if($solicitud->estado === \App\Models\Solicitud::FINALIZADO)
-                    <a href="{{ route('ordenes.ticket', $solicitud) }}"
+                    <a href="{{ route('ticket.public', $solicitud) }}"
                        class="rounded-xl border border-emerald-300 text-emerald-700 px-4 py-2 hover:bg-emerald-50"
                        target="_blank">
                         Ticket PDF
