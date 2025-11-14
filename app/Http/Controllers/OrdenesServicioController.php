@@ -10,10 +10,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use App\Services\TicketPdfGenerator;
+use App\Services\WhatsappService;
+use Illuminate\Support\Facades\Log;
 
 class OrdenesServicioController extends Controller
 { 
-    public function __construct(private TicketPdfGenerator $ticketPdfGenerator)
+    public function __construct(
+        private TicketPdfGenerator $ticketPdfGenerator,
+        private WhatsappService $whatsapp
+    )
     {
     }
     /**
@@ -216,5 +221,14 @@ class OrdenesServicioController extends Controller
             'estado' => Solicitud::FINALIZADO,
             'ticket_pdf_path' => $path,
         ])->save();
+
+        try {
+            $this->whatsapp->sendTicketTemplate($solicitud);
+        } catch (\Throwable $e) {
+            Log::error('Error al enviar mensaje de WhatsApp para solicitud finalizada.', [
+                'solicitud_id' => $solicitud->id,
+                'exception' => $e->getMessage(),
+            ]);
+        }
     }
 }
