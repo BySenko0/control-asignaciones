@@ -7,6 +7,7 @@ use App\Http\Controllers\ClientesAsignacionController;
 use App\Http\Controllers\ClientesCrudController;
 use App\Http\Controllers\SolicitudesClienteController;
 use App\Http\Controllers\UsuariosController;
+use App\Http\Controllers\WhatsappController;
 use App\Http\Controllers\PlantillasController;
 use App\Http\Controllers\OrdenesServicioController; // Órdenes de servicio
 use App\Http\Controllers\DashboardController;
@@ -24,6 +25,9 @@ Route::get('/dashboard', DashboardController::class)
 Route::get('/ticket/{solicitud}', [OrdenesServicioController::class, 'publicTicket'])
     ->whereNumber('solicitud')
     ->name('ticket.public');
+
+Route::get('/whatsapp/solicitud/{solicitud}', [WhatsappController::class, 'enviarPorSolicitud'])
+    ->name('whatsapp.solicitud');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
