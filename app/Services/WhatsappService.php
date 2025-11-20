@@ -37,6 +37,22 @@ class WhatsappService
         return $digits;
     }
 
+    protected function successfulStatus(?int $status): bool
+    {
+        return !is_null($status) && $status >= 200 && $status < 300;
+    }
+
+    protected function stringifyBody(mixed $body): string
+    {
+        if (is_string($body)) {
+            return $body;
+        }
+
+        $encoded = json_encode($body, JSON_UNESCAPED_UNICODE);
+
+        return $encoded === false ? '' : $encoded;
+    }
+
     /**
      * Send WhatsApp template for the given solicitud and return response details.
      */
@@ -49,7 +65,6 @@ class WhatsappService
         $telefonoCliente = $cliente?->telefono; // Cambia "telefono" si tu columna se llama distinto.
         $nombreCliente = $cliente?->nombre;     // Cambia "nombre" si tu columna se llama distinto.
         $tipoServicio = $solicitud->tipo_servicio; // Ajusta si la columna del tipo de servicio tiene otro nombre.
-        $urlTicket = url("/ordenes/{$solicitud->id}/ticket");
 
         $numeroFormateado = $this->formatNumber((string) $telefonoCliente);
 
@@ -77,7 +92,14 @@ class WhatsappService
                         'parameters' => [
                             ['type' => 'text', 'text' => (string) $nombreCliente], // {{1}}
                             ['type' => 'text', 'text' => (string) $tipoServicio], // {{2}}
-                            ['type' => 'text', 'text' => $urlTicket],             // {{3}}
+                        ],
+                    ],
+                    [
+                        'type' => 'button',
+                        'sub_type' => 'url',
+                        'index' => '0',
+                        'parameters' => [
+                            ['type' => 'text', 'text' => (string) $solicitud->id], // {{1}} dynamic part of the URL
                         ],
                     ],
                 ],
@@ -96,5 +118,48 @@ class WhatsappService
             'status' => $response->status(),
             'body' => $body,
         ];
+    }
+
+    /**
+     * Send WhatsApp template and persist the sending result in the solicitud record.
+     */
+    public function sendTicketTemplateWithTracking(Solicitud $solicitud): array
+    {
+        try {
+            $result = $this->sendTicketTemplate($solicitud);
+            $ok = $this->successfulStatus($result['status']);
+
+            $solicitud->forceFill([
+                'whatsapp_ticket_status' => $ok ? 'sent' : 'failed',
+                'whatsapp_ticket_sent_at' => now(),
+                'whatsapp_ticket_error' => $ok ? null : $this->stringifyBody($result['body']),
+            ])->save();
+
+            if (!$ok) {
+                Log::warning('Fallo al enviar mensaje de WhatsApp para la solicitud.', [
+                    'solicitud_id' => $solicitud->id,
+                    'response' => $result['body'],
+                ]);
+            }
+
+            return $result + ['ok' => $ok];
+        } catch (\Throwable $e) {
+            $solicitud->forceFill([
+                'whatsapp_ticket_status' => 'error',
+                'whatsapp_ticket_sent_at' => now(),
+                'whatsapp_ticket_error' => $e->getMessage(),
+            ])->save();
+
+            Log::error('Error inesperado al enviar mensaje de WhatsApp para la solicitud.', [
+                'solicitud_id' => $solicitud->id,
+                'exception' => $e->getMessage(),
+            ]);
+
+            return [
+                'ok' => false,
+                'status' => null,
+                'body' => $e->getMessage(),
+            ];
+        }
     }
 }

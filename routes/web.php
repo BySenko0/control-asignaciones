@@ -114,6 +114,10 @@ Route::middleware(['auth','role:admin|virtuality'])->group(function () {
     Route::post('/ordenes/{solicitud}/finalizar', [OrdenesServicioController::class,'finalizar'])
         ->name('ordenes.finalizar');
 
+    // Reenviar mensaje de ticket por WhatsApp
+    Route::post('/ordenes/{solicitud}/reenviar-whatsapp', [OrdenesServicioController::class,'reenviarWhatsapp'])
+        ->name('ordenes.reenviar_whatsapp');
+
     Route::get('/ordenes/{solicitud}/ticket', [OrdenesServicioController::class,'ticket'])
         ->name('ordenes.ticket');
 });

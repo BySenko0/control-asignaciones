@@ -222,13 +222,27 @@ class OrdenesServicioController extends Controller
             'ticket_pdf_path' => $path,
         ])->save();
 
-        try {
-            $this->whatsapp->sendTicketTemplate($solicitud);
-        } catch (\Throwable $e) {
-            Log::error('Error al enviar mensaje de WhatsApp para solicitud finalizada.', [
-                'solicitud_id' => $solicitud->id,
-                'exception' => $e->getMessage(),
-            ]);
+        $this->whatsapp->sendTicketTemplateWithTracking($solicitud);
+    }
+
+    public function reenviarWhatsapp(Solicitud $solicitud)
+    {
+        $user = Auth::user();
+        abort_unless($user->hasRole('admin') || $solicitud->asignado_a === $user->id, 403);
+        abort_unless($solicitud->estado === Solicitud::FINALIZADO, 404);
+
+        if (!$solicitud->ticket_pdf_path || !Storage::disk('local')->exists($solicitud->ticket_pdf_path)) {
+            $path = $this->ticketPdfGenerator->generate($solicitud);
+            $solicitud->forceFill(['ticket_pdf_path' => $path])->save();
         }
+
+        $result = $this->whatsapp->sendTicketTemplateWithTracking($solicitud);
+
+        return back()->with(
+            $result['ok'] ?? false ? 'ok' : 'error',
+            ($result['ok'] ?? false)
+                ? 'Mensaje reenviado por WhatsApp.'
+                : 'No se pudo reenviar el mensaje, intenta de nuevo.'
+        );
     }
 }
