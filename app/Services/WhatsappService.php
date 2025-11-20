@@ -66,6 +66,9 @@ class WhatsappService
         $nombreCliente = $cliente?->nombre;     // Cambia "nombre" si tu columna se llama distinto.
         $tipoServicio = $solicitud->tipo_servicio; // Ajusta si la columna del tipo de servicio tiene otro nombre.
 
+        $nombreCliente = $nombreCliente ?: 'Cliente';
+        $tipoServicio = $tipoServicio ?: 'Servicio';
+
         $numeroFormateado = $this->formatNumber((string) $telefonoCliente);
 
         if ($numeroFormateado === '') {
