@@ -17,7 +17,7 @@ class WhatsappController extends Controller
      */
     public function enviarPorSolicitud(Solicitud $solicitud): JsonResponse
     {
-        $result = $this->whatsapp->sendTicketTemplate($solicitud);
+        $result = $this->whatsapp->sendTicketTemplateWithTracking($solicitud);
 
         return response()->json($result);
     }

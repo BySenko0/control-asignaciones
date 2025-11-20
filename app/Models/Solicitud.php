@@ -24,6 +24,9 @@ class Solicitud extends Model
         'estado',              // pendiente | en_proceso | finalizado
         'descripcion',
         'ticket_pdf_path',
+        'whatsapp_ticket_status',
+        'whatsapp_ticket_sent_at',
+        'whatsapp_ticket_error',
         'fecha_vencimiento',   // nullable
     ];
 
@@ -32,6 +35,7 @@ class Solicitud extends Model
         'asignado_a'        => 'integer',
         'plantilla_id'      => 'integer',
         'fecha_vencimiento' => 'date',   // Carbon|null
+        'whatsapp_ticket_sent_at' => 'datetime',
     ];
 
     // === Estados (como están en tu BD) ===
@@ -99,6 +103,38 @@ class Solicitud extends Model
     {
         if (!$this->fecha_vencimiento) return null;
         return today()->diffInDays($this->fecha_vencimiento, false); // negativo si ya venció
+    }
+
+    /**
+     * True when the WhatsApp ticket message is expired (1h after being sent) or was never sent.
+     */
+    public function getWhatsappTicketExpiredAttribute(): bool
+    {
+        if (!$this->whatsapp_ticket_sent_at) {
+            return true;
+        }
+
+        return $this->whatsapp_ticket_sent_at->lt(now()->subHour());
+    }
+
+    /**
+     * Indicates if the UI should offer a resend button for the ticket WhatsApp message.
+     */
+    public function getShouldResendWhatsappTicketAttribute(): bool
+    {
+        if ($this->estado !== self::FINALIZADO) {
+            return false;
+        }
+
+        if (!$this->whatsapp_ticket_sent_at) {
+            return true;
+        }
+
+        if ($this->whatsapp_ticket_status !== 'sent') {
+            return true;
+        }
+
+        return $this->whatsapp_ticket_expired;
     }
 
     /**

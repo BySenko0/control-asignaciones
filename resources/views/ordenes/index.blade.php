@@ -87,6 +87,31 @@
                                 {{ $s->pasos_hechos_count ?? 0 }}/{{ $s->total_pasos ?? 0 }}
                             </div>
 
+                            @if($s->estado === 'finalizado')
+                                @php
+                                    $whatsStatus = $s->whatsapp_ticket_status;
+                                    $whatsBadge = 'bg-gray-100 text-gray-800';
+                                    $whatsText = 'No enviado todavía';
+
+                                    if($whatsStatus === 'sent') {
+                                        $whatsBadge = 'bg-emerald-100 text-emerald-800';
+                                        $whatsText = 'Enviado ' . ($s->whatsapp_ticket_sent_at?->diffForHumans() ?? '');
+                                    } elseif($whatsStatus) {
+                                        $whatsBadge = 'bg-amber-100 text-amber-800';
+                                        $whatsText = 'Con errores ' . ($s->whatsapp_ticket_sent_at?->diffForHumans() ?? '');
+                                    }
+                                @endphp
+                                <div class="sm:col-span-2 flex items-center gap-2">
+                                    <span class="text-gray-500">• WhatsApp:</span>
+                                    <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $whatsBadge }}">
+                                        {{ $whatsText }}
+                                    </span>
+                                    @if($whatsStatus === 'sent' && $s->whatsapp_ticket_expired)
+                                        <span class="text-xs text-gray-500">(expira en 1 hora)</span>
+                                    @endif
+                                </div>
+                            @endif
+
                             {{-- (Opcional) Badge de vencimiento --}}
                             @php
                                 $fv = $s->fecha_vencimiento;
@@ -136,6 +161,16 @@
                                    class="rounded-lg border border-gray-300 px-3 py-1.5 hover:bg-gray-100">
                                     Editar
                                 </a>
+                            @endif
+
+                            @if($s->should_resend_whatsapp_ticket)
+                                <form action="{{ route('ordenes.reenviar_whatsapp', $s) }}" method="POST">
+                                    @csrf
+                                    <button type="submit"
+                                            class="rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 px-3 py-1.5 hover:bg-indigo-100">
+                                        Volver a enviar
+                                    </button>
+                                </form>
                             @endif
                         </div>
                     </div>
