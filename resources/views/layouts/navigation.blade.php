@@ -119,7 +119,8 @@
                 </a>
 
 
-                <a href="#" class="group flex items-center gap-3 rounded-lg px-3 py-2 {{ $linkClass }}">
+                <a href="{{ route('folios.index') }}"
+                   class="group flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('folios.*') ? 'bg-white/10 text-white' : $linkClass }}">
                     <svg class="w-5 h-5 opacity-70" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h16v16H4zM8 8h8v2H8zM8 12h8v2H8z"/></svg>
                     <span x-show="sidebarOpen" class="truncate">Folios</span>
                 </a>

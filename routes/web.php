@@ -11,6 +11,7 @@ use App\Http\Controllers\WhatsappController;
 use App\Http\Controllers\PlantillasController;
 use App\Http\Controllers\OrdenesServicioController; // Órdenes de servicio
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FoliosController;
 
 Route::get('/', function () {
     return auth()->check()
@@ -120,6 +121,11 @@ Route::middleware(['auth','role:admin|virtuality'])->group(function () {
 
     Route::get('/ordenes/{solicitud}/ticket', [OrdenesServicioController::class,'ticket'])
         ->name('ordenes.ticket');
+
+    // =======================
+    // Folios de reparación
+    // =======================
+    Route::get('/folios', FoliosController::class)->name('folios.index');
 });
 
 // Solo admin: usuarios (index + crear + actualizar)
