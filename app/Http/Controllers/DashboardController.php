@@ -3,32 +3,43 @@
 namespace App\Http\Controllers;
 
 use App\Models\Solicitud;
+use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
     public function __invoke()
     {
+        $user = Auth::user();
+        $isAdmin = $user->hasRole('admin');
+
         $hoy = today();
 
+        $baseQuery = Solicitud::query();
+
+        // Usuarios no administradores solo ven sus asignaciones
+        if (!$isAdmin) {
+            $baseQuery->where('asignado_a', $user->id);
+        }
+
         $kpis = [
-            'pendientes'   => Solicitud::where('estado','pendiente')->count(),
-            'en_proceso'   => Solicitud::where('estado','en_proceso')->count(),
-            'finalizadas'  => Solicitud::where('estado','finalizado')->count(),
+            'pendientes'   => (clone $baseQuery)->where('estado','pendiente')->count(),
+            'en_proceso'   => (clone $baseQuery)->where('estado','en_proceso')->count(),
+            'finalizadas'  => (clone $baseQuery)->where('estado','finalizado')->count(),
 
             // Vencidas: con fecha, no finalizadas y fecha < hoy
-            'vencidas'     => Solicitud::whereIn('estado',['pendiente','en_proceso'])
+            'vencidas'     => (clone $baseQuery)->whereIn('estado',['pendiente','en_proceso'])
                                 ->whereNotNull('fecha_vencimiento')
                                 ->whereDate('fecha_vencimiento','<',$hoy)
                                 ->count(),
 
             // Vencen hoy: con fecha, no finalizadas y = hoy
-            'vencen_hoy'   => Solicitud::whereIn('estado',['pendiente','en_proceso'])
+            'vencen_hoy'   => (clone $baseQuery)->whereIn('estado',['pendiente','en_proceso'])
                                 ->whereNotNull('fecha_vencimiento')
                                 ->whereDate('fecha_vencimiento',$hoy)
                                 ->count(),
 
             // No asignadas: abiertas sin asignado
-            'no_asignadas' => Solicitud::whereIn('estado',['pendiente','en_proceso'])
+            'no_asignadas' => (clone $baseQuery)->whereIn('estado',['pendiente','en_proceso'])
                                 ->whereNull('asignado_a')
                                 ->count(),
         ];
