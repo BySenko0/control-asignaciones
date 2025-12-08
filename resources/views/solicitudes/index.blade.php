@@ -3,7 +3,8 @@
     <style>[x-cloak]{display:none!important}</style>
     @endpush>
 
-    <div x-data="solicitudesUI({ clienteId: {{ isset($clienteSel) ? $clienteSel->id : 'null' }} })"
+    <div id="solicitudesRoot"
+         x-data="solicitudesUI({ clienteId: {{ isset($clienteSel) ? $clienteSel->id : 'null' }} })"
          class="mx-auto max-w-7xl space-y-6">
 
         {{-- Header --}}
@@ -28,8 +29,9 @@
             </div>
         </div>
 
-        {{-- DataTables CSS --}}
+        {{-- DataTables + Select2 CSS --}}
         <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" />
 
         {{-- Search + estilos tabla “card rows” --}}
         <style>
@@ -63,6 +65,12 @@
           }
           .dataTables_paginate .paginate_button.current{background:#111827;color:#fff;border-color:#111827}
           .dataTables_paginate .paginate_button:hover{background:#F3F4F6}
+
+          /* Select2 tweaks */
+          .select2-container .select2-selection--single{height:42px;border-color:#D1D5DB;border-radius:.75rem}
+          .select2-container--default .select2-selection--single .select2-selection__rendered{line-height:40px;color:#374151;padding-left:12px}
+          .select2-container--default .select2-selection--single .select2-selection__arrow{height:40px;right:10px}
+          .select2-container--default.select2-container--open .select2-selection--single{border-color:#4F46E5;box-shadow:0 0 0 2px rgba(79,70,229,.15)}
         </style>
 
         {{-- Buscador externo --}}
@@ -216,7 +224,7 @@
         @endif
 
         {{-- ******** MODAL Crear/Editar ******** --}}
-        <div x-cloak x-show="modalOpen"
+        <div id="modalSolicitudes" x-cloak x-show="modalOpen"
              class="fixed inset-0 z-50 flex items-center justify-center">
           <div class="absolute inset-0 bg-black/40" @click="close()"></div>
 
@@ -242,8 +250,10 @@
                   {{-- Cliente --}}
                   <div class="sm:col-span-2">
                       <label class="text-sm text-gray-700">Cliente</label>
-                      <select name="cliente_id" x-model="form.cliente_id"
+                      <select id="clienteSelect" name="cliente_id" x-model="form.cliente_id"
+                              x-effect="if(window.$clienteSelect){ window.$clienteSelect.val(form.cliente_id ?? '').trigger('change.select2'); }"
                               class="mt-1 w-full rounded-xl border-gray-300">
+                          <option value="">Selecciona o busca un cliente…</option>
                           @foreach (\App\Models\ClientesAsignacion::orderBy('nombre_cliente')->get(['id','nombre_cliente']) as $c)
                               <option value="{{ $c->id }}">{{ $c->nombre_cliente }}</option>
                           @endforeach
@@ -283,7 +293,20 @@
                   </div>
 
                   {{-- Fecha de vencimiento (opcional) --}}
-                  <div x-data="{ sinVenc: false }">
+                  <div x-data="{
+                        sinVenc: false,
+                        init(){
+                            this.sinVenc = !form.fecha_vencimiento;
+                            this.$watch('form.fecha_vencimiento', (value) => { this.sinVenc = !value; });
+                            this.$watch('sinVenc', (value) => {
+                                if(value){
+                                    form.fecha_vencimiento = '';
+                                }else if(!form.fecha_vencimiento){
+                                    form.fecha_vencimiento = defaultDueDate();
+                                }
+                            });
+                        }
+                      }">
                       <label class="text-sm text-gray-700">Fecha de vencimiento (opcional)</label>
                       <input type="date" name="fecha_vencimiento"
                              class="mt-1 w-full rounded-xl border-gray-300"
@@ -390,6 +413,13 @@
     {{-- Alpine: lógica de la vista --}}
     <script>
     function solicitudesUI({ clienteId = null } = {}){
+        const pad = (n) => String(n).padStart(2,'0');
+        const defaultDueDate = () => {
+            const d = new Date();
+            d.setDate(d.getDate() + 3);
+            return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+        };
+
         const blank = () => ({
             id:null,
             cliente_id: clienteId ?? '',
@@ -400,12 +430,13 @@
             tipo_servicio:'',
             estado:'pendiente',
             descripcion:'',
-            fecha_vencimiento:'', // NUEVO
+            fecha_vencimiento: defaultDueDate(), // NUEVO
         });
 
         return {
             // dataset
             plantillas: PLANTILLAS,
+            defaultDueDate,
 
             // modal crear/editar
             modalOpen:false,
@@ -420,6 +451,7 @@
             openCreate(){
                 this.mode='create';
                 this.form = blank();
+                this.syncClienteSelect();
                 this.modalOpen=true;
             },
             openEdit(item){
@@ -437,6 +469,7 @@
                     descripcion: item.descripcion ?? '',
                     fecha_vencimiento: item.fecha_vencimiento ?? '', // NUEVO
                 };
+                this.syncClienteSelect();
                 this.modalOpen=true;
             },
             close(){ this.modalOpen=false; },
@@ -466,6 +499,11 @@
                 const base = @json(url('solicitudes/__ID__/assign'));
                 return base.replace('__ID__', this.assignId ?? '');
             },
+            syncClienteSelect(){
+                if(window.$clienteSelect){
+                    window.$clienteSelect.val(this.form.cliente_id ?? '').trigger('change.select2');
+                }
+            },
         }
     }
     </script>
@@ -473,6 +511,7 @@
     {{-- jQuery + DataTables --}}
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
       $(function () {
         const table = $('#tablaSolicitudes').DataTable({
@@ -504,6 +543,26 @@
           $('#searchSolicitudes').val(@json($q));
           table.search(@json($q)).draw();
         @endif
+
+        // Select2: buscador de clientes en el modal
+        const modal = $('#modalSolicitudes');
+        window.$clienteSelect = $('#clienteSelect').select2({
+          dropdownParent: modal,
+          width: '100%',
+          placeholder: 'Buscar cliente...'
+        });
+
+        window.$clienteSelect.on('change', function(){
+          const alpine = document.getElementById('solicitudesRoot')?.__x?.$data;
+          if(alpine){
+            alpine.form.cliente_id = $(this).val();
+          }
+        });
+
+        const alpine = document.getElementById('solicitudesRoot')?.__x?.$data;
+        if(alpine?.syncClienteSelect){
+          alpine.syncClienteSelect();
+        }
       });
     </script>
     @endpush
