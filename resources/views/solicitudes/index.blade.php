@@ -85,8 +85,117 @@
           @endif
         </div>
 
+        {{-- Cards móvil --}}
+        <div class="md:hidden space-y-4">
+            @forelse ($solicitudes as $s)
+                <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <div class="font-semibold text-gray-900">{{ $s->dispositivo }}</div>
+                            <div class="text-xs text-gray-500">Serie: {{ $s->no_serie ?? '—' }} · Modelo: {{ $s->modelo ?? '—' }}</div>
+                        </div>
+                        @php($color = [
+                            'pendiente'  => 'bg-yellow-100 text-yellow-800',
+                            'en_proceso' => 'bg-blue-100 text-blue-800',
+                            'finalizado' => 'bg-green-100 text-green-800',
+                        ][$s->estado] ?? 'bg-gray-100 text-gray-800')
+                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $color }}">
+                            {{ Str::of($s->estado)->replace('_',' ')->ucfirst() }}
+                        </span>
+                    </div>
+
+                    <div class="mt-3 grid gap-1 text-sm text-gray-700">
+                        <div><span class="text-gray-500">Cliente:</span> {{ optional($s->cliente)->nombre_cliente ?? '—' }}</div>
+                        <div><span class="text-gray-500">Servicio:</span> {{ $s->tipo_servicio }}</div>
+                        <div><span class="text-gray-500">Asignado:</span> {{ optional($s->asignado)->name ?? 'Sin asignar' }}</div>
+                        <div>
+                            <span class="text-gray-500">Vence:</span>
+                            @php($fv = $s->fecha_vencimiento)
+                            @php($texto = $fv ? $fv->format('Y-m-d') : '—')
+                            @php($badge = 'bg-gray-100 text-gray-700')
+                            @if($fv)
+                                @if($s->estado !== 'finalizado')
+                                    @if($fv->isBefore(today()))
+                                        @php($badge = 'bg-red-100 text-red-800')
+                                    @elseif($fv->isSameDay(today()))
+                                        @php($badge = 'bg-amber-100 text-amber-800')
+                                    @else
+                                        @php($badge = 'bg-sky-100 text-sky-800')
+                                    @endif
+                                @else
+                                    @php($badge = 'bg-gray-100 text-gray-600')
+                                @endif
+                            @endif
+                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $badge }}">
+                                {{ $texto }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <button
+                            x-data="{ item: @js([
+                                'id'                 => $s->id,
+                                'cliente_id'         => $s->cliente_id,
+                                'no_serie'           => $s->no_serie,
+                                'dispositivo'        => $s->dispositivo,
+                                'modelo'             => $s->modelo,
+                                'plantilla_id'       => $s->plantilla_id,
+                                'tipo_servicio'      => $s->tipo_servicio,
+                                'estado'             => $s->estado,
+                                'descripcion'        => $s->descripcion,
+                                'fecha_vencimiento'  => optional($s->fecha_vencimiento)->format('Y-m-d'),
+                            ]) }"
+                            @click="openEdit(item)"
+                            class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-100">
+                            Editar
+                        </button>
+
+                        @role('admin')
+                        <button @click="openAssign({ id: {{ $s->id }} })"
+                                class="rounded-lg border border-indigo-200 text-indigo-700 px-3 py-1.5 text-sm hover:bg-indigo-50">
+                            Asignar
+                        </button>
+                        @endrole
+
+                        @if(auth()->user()->hasRole('virtuality') && !auth()->user()->hasRole('admin'))
+                            @if(is_null($s->asignado_a))
+                                <form method="POST" action="{{ route('solicitudes.assign', $s) }}">
+                                    @csrf
+                                    <input type="hidden" name="user_id" value="{{ auth()->id() }}">
+                                    <button type="submit"
+                                            class="rounded-lg border border-indigo-200 text-indigo-700 px-3 py-1.5 text-sm hover:bg-indigo-50">
+                                        Tomar
+                                    </button>
+                                </form>
+                            @endif
+                        @endif
+
+                        @if($s->estado === 'finalizado')
+                            <a href="{{ route('ticket.public', $s) }}"
+                               class="rounded-lg border border-emerald-300 text-emerald-700 px-3 py-1.5 text-sm hover:bg-emerald-50"
+                               target="_blank">
+                                Ticket
+                            </a>
+                        @endif
+
+                        <form method="POST" action="{{ route('solicitudes.destroy', $s) }}"
+                              onsubmit="return confirm('¿Eliminar esta solicitud?')">
+                            @csrf @method('DELETE')
+                            <button type="submit"
+                                    class="rounded-lg border border-red-300 text-red-700 px-3 py-1.5 text-sm hover:bg-red-50">
+                                Eliminar
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            @empty
+                <div class="rounded-2xl border border-gray-200 bg-white p-8 text-center text-gray-500">No hay solicitudes.</div>
+            @endforelse
+        </div>
+
         {{-- Tabla --}}
-        <div class="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div class="hidden md:block overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
             <table id="tablaSolicitudes" class="min-w-full text-sm">
                 <thead class="text-gray-600">
                     <tr>

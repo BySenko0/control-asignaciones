@@ -5,7 +5,7 @@
 
     <div x-data="clientesUI()" class="mx-auto max-w-7xl space-y-6">
         {{-- Header --}}
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h1 class="text-2xl font-semibold text-gray-800">Clientes</h1>
                 <p class="text-sm text-gray-500">Gestiona a tus clientes y sus datos de contacto.</p>
@@ -67,8 +67,62 @@
             @endif
         </div>
 
-        {{-- Tabla --}}
-        <div class="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
+        {{-- Cards móvil --}}
+        <div class="md:hidden space-y-4">
+            @forelse ($clientes as $c)
+                @php
+                    $url = $c->imagen
+                        ? (filter_var($c->imagen, FILTER_VALIDATE_URL) ? $c->imagen : asset($c->imagen))
+                        : null;
+                @endphp
+                <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                    <div class="flex items-start gap-3">
+                        @if($url)
+                            <img
+                                src="{{ $url }}"
+                                class="h-10 w-10 rounded-full object-cover ring-1 ring-gray-200"
+                                onerror="this.replaceWith(Object.assign(document.createElement('div'),{
+                                    className:'h-10 w-10 rounded-full ring-1 ring-gray-200 flex items-center justify-center text-[10px] text-gray-500 bg-gray-100',
+                                    innerText:'Sin imagen'
+                                }))"
+                            />
+                        @else
+                            <div class="h-10 w-10 rounded-full ring-1 ring-gray-200 flex items-center justify-center text-[10px] text-gray-500 bg-gray-100">
+                                Sin imagen
+                            </div>
+                        @endif
+                        <div class="flex-1 min-w-0">
+                            <div class="font-semibold text-gray-900 truncate">{{ $c->nombre_cliente }}</div>
+                            <div class="text-sm text-gray-500 truncate">{{ $c->nombre_empresa }}</div>
+                            <div class="text-xs text-gray-400 truncate">{{ $c->correo_empresa }}</div>
+                            <div class="text-xs text-gray-400 truncate">{{ $c->telefono ?? '—' }}</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <button @click='openEdit(@json($c))'
+                                class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-100">
+                            Editar
+                        </button>
+                        <form method="POST" action="{{ route('clientes.destroy', $c->id) }}"
+                              onsubmit="return confirm('¿Eliminar este cliente?')">
+                            @csrf @method('DELETE')
+                            <button type="submit"
+                                    class="rounded-lg border border-red-300 text-red-700 px-3 py-1.5 text-sm hover:bg-red-50">
+                                Eliminar
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            @empty
+                <div class="rounded-2xl border border-gray-200 bg-white p-8 text-center text-gray-500">
+                    Sin registros.
+                </div>
+            @endforelse
+        </div>
+
+        {{-- Tabla desktop --}}
+        <div class="hidden md:block overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
             <table id="tablaClientes" class="min-w-full text-sm">
                 <thead class="text-gray-600">
                     <tr>

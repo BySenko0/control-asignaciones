@@ -1,13 +1,13 @@
 {{-- resources/views/dashboard.blade.php --}}
 <x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Dashboard') }}
-        </h2>
-    </x-slot>
-
     <div class="py-8">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h1 class="text-2xl font-semibold text-gray-800">Dashboard</h1>
+                    <p class="text-sm text-gray-500">Monitorea el estado general y accede a los listados clave.</p>
+                </div>
+            </div>
 
             {{-- KPIs --}}
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

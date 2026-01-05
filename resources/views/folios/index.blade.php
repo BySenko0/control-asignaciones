@@ -41,7 +41,36 @@
                 @endunless
             </div>
 
-            <div class="overflow-x-auto">
+            {{-- Cards móvil --}}
+            <div class="md:hidden divide-y">
+                @forelse($folios as $folio)
+                    <div class="px-4 py-4">
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <div class="font-semibold text-gray-900">Folio #{{ $folio->id }}</div>
+                                <div class="text-xs text-gray-500">{{ $folio->dispositivo }} · {{ $folio->modelo ?: '—' }}</div>
+                            </div>
+                            <a href="{{ route('ticket.public', $folio) }}" target="_blank"
+                               class="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs text-emerald-700 hover:bg-emerald-100">
+                                Ver ticket
+                            </a>
+                        </div>
+                        <div class="mt-2 grid gap-1 text-sm text-gray-700">
+                            <div><span class="text-gray-500">Serie:</span> {{ $folio->no_serie ?: '—' }}</div>
+                            <div><span class="text-gray-500">Cliente:</span> {{ optional($folio->cliente)->nombre_cliente ?? '—' }}</div>
+                            <div><span class="text-gray-500">Reparó:</span> {{ optional($folio->asignado)->name ?? '—' }}</div>
+                            <div><span class="text-gray-500">Solicitado:</span> {{ optional($folio->created_at)->format('Y-m-d') }}</div>
+                            <div><span class="text-gray-500">Reparado:</span> {{ optional($folio->updated_at)->format('Y-m-d') }}</div>
+                            <div class="text-xs text-gray-500">Servicio: {{ $folio->tipo_servicio }}</div>
+                            <div class="text-xs text-gray-500 break-words">{{ $folio->descripcion ?: 'Sin descripción' }}</div>
+                        </div>
+                    </div>
+                @empty
+                    <div class="px-4 py-10 text-center text-gray-500">No hay dispositivos reparados con los filtros seleccionados.</div>
+                @endforelse
+            </div>
+
+            <div class="hidden md:block overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200 text-sm">
                     <thead class="bg-gray-50">
                         <tr>
