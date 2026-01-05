@@ -10,7 +10,7 @@
       }"
       class="mx-auto max-w-7xl space-y-6">
 
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h1 class="text-2xl font-semibold text-gray-800">{{ $plantilla->nombre }}</h1>
         <p class="text-sm text-gray-500">Máximo 15 pasos por plantilla.</p>
@@ -23,7 +23,7 @@
 
     {{-- agregar paso --}}
     <div class="rounded-2xl border border-gray-200 bg-white shadow-sm p-4">
-      <form method="POST" action="{{ route('plantillas.pasos.store',$plantilla) }}" class="flex items-center gap-3">
+      <form method="POST" action="{{ route('plantillas.pasos.store',$plantilla) }}" class="flex flex-col gap-3 sm:flex-row sm:items-center">
         @csrf
         <input name="titulo" placeholder="Nuevo paso (ej. Verificar si hay material disponible)"
                class="flex-1 rounded-xl border border-gray-300 px-3 py-2" required>
@@ -44,35 +44,87 @@
         Pasos ({{ $plantilla->pasos->count() }})
       </div>
 
-      <div class="p-4 space-y-3">
+      {{-- Tabla desktop --}}
+      <div class="hidden md:block overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 text-sm">
+          <thead class="bg-gray-50 text-gray-700">
+            <tr>
+              <th class="px-4 py-3 text-left font-semibold">Orden</th>
+              <th class="px-4 py-3 text-left font-semibold">Paso</th>
+              <th class="px-4 py-3 text-right font-semibold">Acciones</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            @forelse($plantilla->pasos as $paso)
+              <tr class="hover:bg-gray-50">
+                <td class="px-4 py-3">
+                  <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-gray-900 text-white text-sm font-semibold">
+                    {{ $paso->numero }}
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-gray-800">{{ $paso->titulo }}</td>
+                <td class="px-4 py-3">
+                  <div class="flex items-center justify-end gap-2">
+                    <form method="POST" action="{{ route('plantillas.pasos.mover', [$plantilla,$paso]) }}">
+                      @csrf
+                      <input type="hidden" name="dir" value="up">
+                      <button class="rounded-lg border px-2 py-1 text-sm hover:bg-gray-100" {{ $paso->numero==1 ? 'disabled' : '' }}>↑</button>
+                    </form>
+                    <form method="POST" action="{{ route('plantillas.pasos.mover', [$plantilla,$paso]) }}">
+                      @csrf
+                      <input type="hidden" name="dir" value="down">
+                      <button class="rounded-lg border px-2 py-1 text-sm hover:bg-gray-100"
+                              {{ $paso->numero==$plantilla->pasos->max('numero') ? 'disabled' : '' }}>↓</button>
+                    </form>
+                    <button @click="openEdit(@js(['id'=>$paso->id,'titulo'=>$paso->titulo]))"
+                            class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-100">Editar</button>
+                    <form method="POST" action="{{ route('plantillas.pasos.destroy', [$plantilla,$paso]) }}"
+                          onsubmit="return confirm('¿Eliminar este paso?')">
+                      @csrf @method('DELETE')
+                      <button class="rounded-lg border border-red-300 text-red-700 px-3 py-1.5 text-sm hover:bg-red-50">Borrar</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            @empty
+              <tr>
+                <td colspan="3" class="px-4 py-8 text-center text-gray-500">Aún no hay pasos para esta plantilla.</td>
+              </tr>
+            @endforelse
+          </tbody>
+        </table>
+      </div>
+
+      {{-- Cards móvil --}}
+      <div class="md:hidden p-4 space-y-3">
         @forelse($plantilla->pasos as $paso)
-          <div class="flex items-center gap-3 rounded-xl bg-gray-50 px-4 py-3 ring-1 ring-gray-200">
-            <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-gray-900 text-white text-sm font-semibold">
-              {{ $paso->numero }}
-            </span>
-            <div class="flex-1">{{ $paso->titulo }}</div>
-
-            {{-- mover --}}
-            <form method="POST" action="{{ route('plantillas.pasos.mover', [$plantilla,$paso]) }}">
-              @csrf
-              <input type="hidden" name="dir" value="up">
-              <button class="rounded-lg border px-2 py-1 text-sm hover:bg-gray-100" {{ $paso->numero==1 ? 'disabled' : '' }}>↑</button>
-            </form>
-            <form method="POST" action="{{ route('plantillas.pasos.mover', [$plantilla,$paso]) }}">
-              @csrf
-              <input type="hidden" name="dir" value="down">
-              <button class="rounded-lg border px-2 py-1 text-sm hover:bg-gray-100"
-                      {{ $paso->numero==$plantilla->pasos->max('numero') ? 'disabled' : '' }}>↓</button>
-            </form>
-
-            {{-- editar / borrar --}}
-            <button @click="openEdit(@js(['id'=>$paso->id,'titulo'=>$paso->titulo]))"
-                    class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-100">Editar</button>
-            <form method="POST" action="{{ route('plantillas.pasos.destroy', [$plantilla,$paso]) }}"
-                  onsubmit="return confirm('¿Eliminar este paso?')">
-              @csrf @method('DELETE')
-              <button class="rounded-lg border border-red-300 text-red-700 px-3 py-1.5 text-sm hover:bg-red-50">Borrar</button>
-            </form>
+          <div class="rounded-xl bg-gray-50 px-4 py-3 ring-1 ring-gray-200">
+            <div class="flex items-start gap-3">
+              <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-900 text-white text-sm font-semibold">
+                {{ $paso->numero }}
+              </span>
+              <div class="flex-1 text-gray-800">{{ $paso->titulo }}</div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <form method="POST" action="{{ route('plantillas.pasos.mover', [$plantilla,$paso]) }}">
+                @csrf
+                <input type="hidden" name="dir" value="up">
+                <button class="rounded-lg border px-2 py-1 text-sm hover:bg-gray-100" {{ $paso->numero==1 ? 'disabled' : '' }}>↑</button>
+              </form>
+              <form method="POST" action="{{ route('plantillas.pasos.mover', [$plantilla,$paso]) }}">
+                @csrf
+                <input type="hidden" name="dir" value="down">
+                <button class="rounded-lg border px-2 py-1 text-sm hover:bg-gray-100"
+                        {{ $paso->numero==$plantilla->pasos->max('numero') ? 'disabled' : '' }}>↓</button>
+              </form>
+              <button @click="openEdit(@js(['id'=>$paso->id,'titulo'=>$paso->titulo]))"
+                      class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-100">Editar</button>
+              <form method="POST" action="{{ route('plantillas.pasos.destroy', [$plantilla,$paso]) }}"
+                    onsubmit="return confirm('¿Eliminar este paso?')">
+                @csrf @method('DELETE')
+                <button class="rounded-lg border border-red-300 text-red-700 px-3 py-1.5 text-sm hover:bg-red-50">Borrar</button>
+              </form>
+            </div>
           </div>
         @empty
           <div class="p-6 text-center text-gray-500">Aún no hay pasos para esta plantilla.</div>

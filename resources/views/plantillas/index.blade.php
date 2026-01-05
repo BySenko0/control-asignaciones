@@ -6,7 +6,7 @@
   <div x-data="{ modal:false, mode:'create', form:{id:null,nombre:'',descripcion:''} }"
        class="mx-auto max-w-7xl space-y-6">
 
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h1 class="text-2xl font-semibold text-gray-800">Plantillas de servicios</h1>
         <p class="text-sm text-gray-500">Crea plantillas (ej. “Cambio de memoria”) y gestiona sus pasos.</p>
@@ -26,22 +26,65 @@
     {{-- lista --}}
     <div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
       <div class="rounded-t-2xl bg-[#1f262b] px-4 py-2 text-center text-sm font-medium text-gray-100">Plantillas</div>
-      <div class="p-4 space-y-3">
+
+      {{-- Tabla desktop --}}
+      <div class="hidden md:block overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 text-sm">
+          <thead class="bg-gray-50 text-gray-700">
+            <tr>
+              <th class="px-4 py-3 text-left font-semibold">Nombre</th>
+              <th class="px-4 py-3 text-left font-semibold">Descripción</th>
+              <th class="px-4 py-3 text-left font-semibold"># pasos</th>
+              <th class="px-4 py-3 text-right font-semibold">Acciones</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            @forelse($plantillas as $p)
+              <tr class="hover:bg-gray-50">
+                <td class="px-4 py-3 font-medium text-gray-900">{{ $p->nombre }}</td>
+                <td class="px-4 py-3 text-gray-700">{{ $p->descripcion }}</td>
+                <td class="px-4 py-3 text-gray-700">{{ $p->pasos_count ?? $p->pasos?->count() ?? 0 }}</td>
+                <td class="px-4 py-3">
+                  <div class="flex items-center justify-end gap-2">
+                    <a href="{{ route('plantillas.pasos', $p) }}"
+                       class="rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-sm hover:bg-gray-100">Ver pasos</a>
+                    <button @click="mode='edit';form={id:{{ $p->id }},nombre:@js($p->nombre),descripcion:@js($p->descripcion)};modal=true"
+                            class="rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-sm hover:bg-gray-100">Editar</button>
+                    <form method="POST" action="{{ route('plantillas.destroy',$p) }}"
+                          onsubmit="return confirm('¿Eliminar esta plantilla y sus pasos?')">
+                      @csrf @method('DELETE')
+                      <button class="rounded-xl border border-red-300 text-red-700 px-3 py-1.5 text-sm hover:bg-red-50">Borrar</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            @empty
+              <tr>
+                <td colspan="4" class="px-4 py-8 text-center text-gray-500">No hay plantillas aún.</td>
+              </tr>
+            @endforelse
+          </tbody>
+        </table>
+      </div>
+
+      {{-- Cards móvil --}}
+      <div class="md:hidden p-4 space-y-3">
         @forelse($plantillas as $p)
-          <div class="flex items-center gap-3 rounded-xl bg-gray-50 px-4 py-3 ring-1 ring-gray-200">
-            <div class="flex-1">
-              <div class="font-medium text-gray-900">{{ $p->nombre }}</div>
-              <div class="text-sm text-gray-500">{{ $p->descripcion }}</div>
+          <div class="rounded-xl bg-gray-50 px-4 py-3 ring-1 ring-gray-200">
+            <div class="font-medium text-gray-900">{{ $p->nombre }}</div>
+            <div class="text-sm text-gray-500">{{ $p->descripcion }}</div>
+            <div class="mt-1 text-xs text-gray-400">{{ $p->pasos_count ?? $p->pasos?->count() ?? 0 }} pasos</div>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <a href="{{ route('plantillas.pasos', $p) }}"
+                 class="rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-sm hover:bg-gray-100">Ver pasos</a>
+              <button @click="mode='edit';form={id:{{ $p->id }},nombre:@js($p->nombre),descripcion:@js($p->descripcion)};modal=true"
+                      class="rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-sm hover:bg-gray-100">Editar</button>
+              <form method="POST" action="{{ route('plantillas.destroy',$p) }}"
+                    onsubmit="return confirm('¿Eliminar esta plantilla y sus pasos?')">
+                @csrf @method('DELETE')
+                <button class="rounded-xl border border-red-300 text-red-700 px-3 py-1.5 text-sm hover:bg-red-50">Borrar</button>
+              </form>
             </div>
-            <a href="{{ route('plantillas.pasos', $p) }}"
-               class="rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-sm hover:bg-gray-100">Ir</a>
-            <button @click="mode='edit';form={id:{{ $p->id }},nombre:@js($p->nombre),descripcion:@js($p->descripcion)};modal=true"
-                    class="rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-sm hover:bg-gray-100">Editar</button>
-            <form method="POST" action="{{ route('plantillas.destroy',$p) }}"
-                  onsubmit="return confirm('¿Eliminar esta plantilla y sus pasos?')">
-              @csrf @method('DELETE')
-              <button class="rounded-xl border border-red-300 text-red-700 px-3 py-1.5 text-sm hover:bg-red-50">Borrar</button>
-            </form>
           </div>
         @empty
           <div class="p-6 text-center text-gray-500">No hay plantillas aún.</div>
