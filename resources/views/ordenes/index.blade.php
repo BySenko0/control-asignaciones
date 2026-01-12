@@ -1,7 +1,7 @@
 <x-app-layout>
     @push('styles')
     <style>[x-cloak]{display:none!important}</style>
-    @endpush>
+    @endpush
 
     <div class="mx-auto max-w-7xl space-y-6">
 

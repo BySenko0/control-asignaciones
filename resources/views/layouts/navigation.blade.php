@@ -1,10 +1,14 @@
 {{-- resources/views/layouts/navigation.blade.php --}}
-<nav x-data="{ sidebarOpen: true, osOpen:false, userOpen:false }" class="relative">
+<nav x-data="{ sidebarOpen: true, mobileOpen: false, osOpen:false, userOpen:false }" class="relative">
 
     {{-- TOPBAR --}}
     <div class="fixed top-0 inset-x-0 h-14 bg-[#161a1d] text-white z-40 flex items-center justify-between px-4 sm:px-6">
         {{-- Hamburguesa --}}
-        <button x-on:click="sidebarOpen=!sidebarOpen" class="p-2 rounded hover:bg-white/10 focus:outline-none">
+        <button
+            x-on:click="(window.innerWidth < 768) ? (mobileOpen = !mobileOpen) : (sidebarOpen = !sidebarOpen)"
+            class="p-2 rounded hover:bg-white/10 focus:outline-none"
+            aria-label="Abrir menú"
+        >
             <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
             </svg>
@@ -12,7 +16,7 @@
 
         {{-- Usuario --}}
         <div class="relative">
-            <button x-on:click="userOpen=!userOpen" class="p-2 rounded-full hover:bg-white/10 focus:outline-none">
+            <button x-on:click="userOpen=!userOpen" class="p-2 rounded-full hover:bg-white/10 focus:outline-none" aria-label="Usuario">
                 <svg class="w-7 h-7" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 12a5 5 0 100-10 5 5 0 000 10zM21 22a9 9 0 10-18 0h18z"/>
                 </svg>
@@ -33,20 +37,40 @@
         </div>
     </div>
 
+    {{-- BACKDROP (solo móvil) --}}
+    <div
+        x-cloak
+        x-show="mobileOpen"
+        x-transition.opacity
+        x-on:click="mobileOpen=false"
+        class="fixed inset-0 bg-black/50 z-40 md:hidden"
+    ></div>
+
     {{-- SIDEBAR --}}
-    <aside class="fixed z-30 top-14 inset-y-0 bg-[#1f262b] text-gray-200 transition-all"
-           :class="sidebarOpen ? 'w-56' : 'w-16'">
+    <aside
+        class="fixed top-14 inset-y-0 left-0 bg-[#1f262b] text-gray-200
+               transition-transform duration-200 z-50 md:z-30
+               w-56 md:transition-all md:duration-200"
+        :class="[
+            // MOBILE: drawer off-canvas
+            mobileOpen ? 'translate-x-0' : '-translate-x-full',
+            // DESKTOP: no translate
+            'md:translate-x-0',
+            // DESKTOP: colapsable por ancho
+            sidebarOpen ? 'md:w-56' : 'md:w-16'
+        ]"
+    >
         <div class="h-full flex flex-col">
-            <nav class="flex-1 space-y-1 px-2 py-3 overflow-y-auto">
+            <nav class="flex-1 space-y-1 px-2 py-3 overflow-y-auto"
+                 x-on:click="if (window.innerWidth < 768 && $event.target.closest('a')) mobileOpen=false">
                 @php
-                    // Solo resaltamos Dashboard porque es la única ruta “real” ahora
                     $activeDash = request()->routeIs('dashboard')
                         ? 'bg-white/10 text-white'
                         : 'text-gray-300 hover:text-white hover:bg-white/10';
                     $linkClass = 'text-gray-300 hover:text-white hover:bg-white/10';
                 @endphp
 
-                {{-- Dashboard (ruta existente en Breeze) --}}
+                {{-- Dashboard --}}
                 <a href="{{ route('dashboard') }}"
                    class="group flex items-center gap-3 rounded-lg px-3 py-2 {{ $activeDash }}">
                     <svg class="w-5 h-5 opacity-70 group-hover:opacity-100" viewBox="0 0 24 24" fill="currentColor">
@@ -55,10 +79,9 @@
                     <span x-show="sidebarOpen" class="truncate">Inicio</span>
                 </a>
 
-                {{-- Órdenes de servicio (submenu – enlaces vacíos por ahora) --}}
+                {{-- Órdenes de servicio --}}
                 <div>
                     @php
-                        // Defaults si no vienen desde el layout/padre
                         $itemBase = $itemBase ?? 'hover:bg-gray-800/40 text-gray-200';
                         $active   = $active   ?? 'bg-gray-900 text-white';
                     @endphp
@@ -73,17 +96,18 @@
                             <path d="M7 10l5 5 5-5H7z"/>
                         </svg>
                     </button>
+
                     <div x-show="osOpen" x-transition.opacity.duration.150ms x-cloak class="pl-8 pr-2 space-y-1">
                         <a href="{{ route('ordenes.pendientes') }}"
                            class="block px-2 py-1.5 rounded {{ request()->routeIs('ordenes.pendientes') ? $active : $itemBase }}">
                             • Pendientes
                         </a>
-                    
+
                         <a href="{{ route('ordenes.en_proceso') }}"
                            class="block px-2 py-1.5 rounded {{ request()->routeIs('ordenes.en_proceso') ? $active : $itemBase }}">
                             • En proceso
                         </a>
-                    
+
                         <a href="{{ route('ordenes.resueltas') }}"
                            class="block px-2 py-1.5 rounded {{ request()->routeIs('ordenes.resueltas') ? $active : $itemBase }}">
                             • Resueltas
@@ -91,18 +115,25 @@
                     </div>
                 </div>
 
-                {{-- Enlaces placeholder (sin rutas) --}}
-
-                <a href="{{ route('clientes.seleccion') }}" class="group flex items-center gap-3 rounded-lg px-3 py-2 {{ $linkClass }}">
-                    <svg class="w-5 h-5 opacity-70" viewBox="0 0 24 24" fill="currentColor"><path d="M5 3h14v18H5zM8 7h8v2H8zM8 11h8v2H8zM8 15h8v2H8z"/></svg>
+                {{-- Solicitudes de cliente --}}
+                <a href="{{ route('clientes.seleccion') }}"
+                   class="group flex items-center gap-3 rounded-lg px-3 py-2 {{ $linkClass }}">
+                    <svg class="w-5 h-5 opacity-70" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M5 3h14v18H5zM8 7h8v2H8zM8 11h8v2H8zM8 15h8v2H8z"/>
+                    </svg>
                     <span x-show="sidebarOpen" class="truncate">Solicitudes de cliente</span>
                 </a>
 
-                <a href="{{ route('clientes.index') }}" class="group flex items-center gap-3 rounded-lg px-3 py-2 {{ $linkClass }}">
-                    <svg class="w-5 h-5 opacity-70" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zM8 11c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5C15 14.17 10.33 13 8 13zm8 0c-.29 0-.62.02-.97.05C16.67 13.84 18 14.79 18 16.5V19h6v-2.5c0-2.33-4.67-3.5-8-3.5z"/></svg>
+                {{-- Clientes --}}
+                <a href="{{ route('clientes.index') }}"
+                   class="group flex items-center gap-3 rounded-lg px-3 py-2 {{ $linkClass }}">
+                    <svg class="w-5 h-5 opacity-70" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zM8 11c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5C15 14.17 10.33 13 8 13zm8 0c-.29 0-.62.02-.97.05C16.67 13.84 18 14.79 18 16.5V19h6v-2.5c0-2.33-4.67-3.5-8-3.5z"/>
+                    </svg>
                     <span x-show="sidebarOpen" class="truncate">Clientes</span>
                 </a>
 
+                {{-- Usuarios (solo admin) --}}
                 @role('admin')
                 <a href="{{ route('usuarios.index') }}"
                    class="group flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('usuarios.*') ? 'bg-white/10 text-white' : $linkClass }}">
@@ -113,21 +144,30 @@
                 </a>
                 @endrole
 
-                <a href="{{ route('plantillas.index') }}" class="group flex items-center gap-3 rounded-lg px-3 py-2 {{ $linkClass }}">
-                    <svg class="w-5 h-5 opacity-70" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5a2 2 0 00-2 2v14l4-4h12a2 2 0 002-2V5a2 2 0 00-2-2z"/></svg>
+                {{-- Plantillas --}}
+                <a href="{{ route('plantillas.index') }}"
+                   class="group flex items-center gap-3 rounded-lg px-3 py-2 {{ $linkClass }}">
+                    <svg class="w-5 h-5 opacity-70" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19 3H5a2 2 0 00-2 2v14l4-4h12a2 2 0 002-2V5a2 2 0 00-2-2z"/>
+                    </svg>
                     <span x-show="sidebarOpen" class="truncate">Checklist-plantillas</span>
                 </a>
 
-
+                {{-- Folios --}}
                 <a href="{{ route('folios.index') }}"
                    class="group flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('folios.*') ? 'bg-white/10 text-white' : $linkClass }}">
-                    <svg class="w-5 h-5 opacity-70" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h16v16H4zM8 8h8v2H8zM8 12h8v2H8z"/></svg>
+                    <svg class="w-5 h-5 opacity-70" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M4 4h16v16H4zM8 8h8v2H8zM8 12h8v2H8z"/>
+                    </svg>
                     <span x-show="sidebarOpen" class="truncate">Folios</span>
                 </a>
             </nav>
         </div>
     </aside>
 
-    {{-- SEPARADOR para que el contenido no quede bajo el sidebar/topbar --}}
-    <div class="pt-14" :style="sidebarOpen ? 'padding-left:14rem' : 'padding-left:4rem'"></div>
+    {{-- SEPARADOR para que el contenido no quede bajo topbar / sidebar --}}
+    <div class="pt-14"
+         :style="(window.innerWidth >= 768) ? (sidebarOpen ? 'padding-left:14rem' : 'padding-left:4rem') : 'padding-left:0'">
+    </div>
+
 </nav>

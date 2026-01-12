@@ -1,7 +1,7 @@
 <x-app-layout>
     @push('styles')
     <style>[x-cloak]{display:none!important}</style>
-    @endpush>
+    @endpush
 
     <div x-data="clientesUI()" class="mx-auto max-w-7xl space-y-6">
         {{-- Header --}}
