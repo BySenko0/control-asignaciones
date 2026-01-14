@@ -102,6 +102,7 @@ class OrdenesServicioController extends Controller
 
         if ($puedeGestionar && $solicitud->estado === Solicitud::PENDIENTE) {
             $solicitud->update(['estado' => Solicitud::EN_PROCESO]);
+            $this->whatsapp->queueOrdenEnProcesoNotification($solicitud, $user);
         }
 
         // Asegurar registros de pasos (ordenados por 'numero')
