@@ -2,7 +2,10 @@
 
 namespace App\Services;
 
+use App\Jobs\SendOrdenEnProcesoWhatsapp;
 use App\Models\Solicitud;
+use App\Models\User;
+use App\Models\WhatsappNotification;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -35,6 +38,16 @@ class WhatsappService
         }
 
         return $digits;
+    }
+
+    public function normalizeNumber(?string $tel): string
+    {
+        return $this->formatNumber((string) $tel);
+    }
+
+    public function isValidNumber(string $tel): bool
+    {
+        return $tel !== '' && str_starts_with($tel, '52') && ctype_digit($tel) && strlen($tel) >= 12;
     }
 
     protected function successfulStatus(?int $status): bool
@@ -121,6 +134,79 @@ class WhatsappService
             'status' => $response->status(),
             'body' => $body,
         ];
+    }
+
+    /**
+     * Send WhatsApp template for orden en proceso notification.
+     */
+    public function sendOrdenEnProcesoTemplate(string $telefono, array $parameters): array
+    {
+        $payload = [
+            'messaging_product' => 'whatsapp',
+            'to' => $telefono,
+            'type' => 'template',
+            'template' => [
+                'name' => 'mensaje',
+                'language' => ['code' => 'en'],
+                'components' => [
+                    [
+                        'type' => 'body',
+                        'parameters' => [
+                            ['type' => 'text', 'text' => (string) ($parameters[0] ?? '')],
+                            ['type' => 'text', 'text' => (string) ($parameters[1] ?? '')],
+                            ['type' => 'text', 'text' => (string) ($parameters[2] ?? '')],
+                            ['type' => 'text', 'text' => (string) ($parameters[3] ?? '')],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $response = Http::withToken(config('services.whatsapp.token'))
+            ->post($this->endpoint(), $payload);
+
+        $body = $response->json();
+        if (is_null($body)) {
+            $body = $response->body();
+        }
+
+        return [
+            'status' => $response->status(),
+            'body' => $body,
+            'ok' => $this->successfulStatus($response->status()),
+        ];
+    }
+
+    /**
+     * Queue WhatsApp notification for orden en proceso state.
+     */
+    public function queueOrdenEnProcesoNotification(Solicitud $solicitud, ?User $actor = null): ?WhatsappNotification
+    {
+        $notification = WhatsappNotification::firstOrCreate(
+            [
+                'solicitud_id' => $solicitud->id,
+                'event_type' => WhatsappNotification::EVENT_ORDEN_EN_PROCESO,
+                'target_state' => Solicitud::EN_PROCESO,
+            ],
+            [
+                'actor_id' => $actor?->id,
+                'template_name' => 'mensaje',
+                'status' => WhatsappNotification::STATUS_PENDING,
+            ]
+        );
+
+        if (!$notification->wasRecentlyCreated) {
+            Log::info('WhatsApp orden en proceso ya registrado; se omite el envío duplicado.', [
+                'notification_id' => $notification->id,
+                'solicitud_id' => $solicitud->id,
+            ]);
+
+            return null;
+        }
+
+        SendOrdenEnProcesoWhatsapp::dispatch($notification->id);
+
+        return $notification;
     }
 
     /**
