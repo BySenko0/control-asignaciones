@@ -272,7 +272,7 @@
                                     <div class="flex items-center gap-3">
                                         <img :src="existingImageUrl" alt="Imagen actual"
                                              class="h-14 w-14 rounded-full object-cover ring-1 ring-gray-200"
-                                             @error="existingImageUrl = null">
+                                             x-on:error="existingImageUrl = null">
                                         <div class="text-xs text-gray-500">Imagen actual</div>
                                     </div>
                                 </template>
@@ -398,10 +398,11 @@
         $('#searchClientes').on('input', function(){ table.search(this.value).draw(); });
 
         // precargar con ?q=
-        @if(!empty($q))
-          $('#searchClientes').val(@json($q));
-          table.search(@json($q)).draw();
-        @endif
+        const initialQuery = @json($q ?? '');
+        if (initialQuery) {
+          $('#searchClientes').val(initialQuery);
+          table.search(initialQuery).draw();
+        }
       });
     </script>
     @endpush

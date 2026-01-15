@@ -108,13 +108,14 @@
         <tbody class="text-gray-700">
           @forelse ($usuarios as $usuario)
             @php($roles = $usuario->roles->pluck('name'))
-            <tr data-user='@json([
-              "id" => $usuario->id,
-              "name" => $usuario->name,
-              "email" => $usuario->email,
-              "roles" => $roles->values(),
-              "created" => optional($usuario->created_at)->format("d/m/Y"),
-            ])'>
+            @php($userData = [
+              'id' => $usuario->id,
+              'name' => $usuario->name,
+              'email' => $usuario->email,
+              'roles' => $roles->values(),
+              'created' => optional($usuario->created_at)->format('d/m/Y'),
+            ])
+            <tr data-user='@json($userData)'>
               <td class="font-medium text-gray-900">{{ $usuario->name }}</td>
               <td>{{ $usuario->email }}</td>
               <td>
