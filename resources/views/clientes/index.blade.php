@@ -216,7 +216,7 @@
                     </button>
                 </div>
 
-                <form :action="formAction()" method="POST" class="grid gap-4 sm:grid-cols-2">
+                <form :action="formAction()" method="POST" enctype="multipart/form-data" class="grid gap-4 sm:grid-cols-2">
                     @csrf
                     <template x-if="mode==='edit'"><input type="hidden" name="_method" value="PUT"></template>
 
@@ -258,9 +258,37 @@
                                class="mt-1 w-full rounded-xl border-gray-300">
                     </div>
                     <div class="sm:col-span-2">
-                        <label class="text-sm text-gray-700">Imagen (ruta/url)</label>
-                        <input name="imagen" x-model="form.imagen" placeholder="storage/img_clientes/logo.png"
-                               class="mt-1 w-full rounded-xl border-gray-300">
+                        <label class="text-sm text-gray-700">Imagen del cliente</label>
+                        <div class="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center">
+                            <div class="flex items-center gap-3">
+                                <template x-if="newImageUrl">
+                                    <div class="flex items-center gap-3">
+                                        <img :src="newImageUrl" alt="Nueva imagen"
+                                             class="h-14 w-14 rounded-full object-cover ring-1 ring-gray-200">
+                                        <div class="text-xs text-gray-500">Nueva imagen</div>
+                                    </div>
+                                </template>
+                                <template x-if="!newImageUrl && existingImageUrl">
+                                    <div class="flex items-center gap-3">
+                                        <img :src="existingImageUrl" alt="Imagen actual"
+                                             class="h-14 w-14 rounded-full object-cover ring-1 ring-gray-200"
+                                             @error="existingImageUrl = null">
+                                        <div class="text-xs text-gray-500">Imagen actual</div>
+                                    </div>
+                                </template>
+                                <template x-if="!newImageUrl && !existingImageUrl">
+                                    <div class="h-14 w-14 rounded-full ring-1 ring-gray-200 flex items-center justify-center text-[10px] text-gray-500 bg-gray-100">
+                                        Sin imagen
+                                    </div>
+                                </template>
+                            </div>
+                            <div class="flex-1">
+                                <input type="file" name="imagen" accept="image/jpeg,image/png,image/webp"
+                                       x-ref="imagenInput" @change="handleImageChange($event)"
+                                       class="w-full rounded-xl border-gray-300 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-indigo-700 hover:file:bg-indigo-100">
+                                <p class="mt-1 text-xs text-gray-500">Formatos: JPG, PNG, WEBP (máx. 5 MB).</p>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="sm:col-span-2 mt-2 flex items-center justify-end gap-3">
@@ -286,17 +314,56 @@
             modalOpen:false,
             mode:'create',
             form:{ id:null,nombre_cliente:'',nombre_empresa:'',direccion:'',responsable:'',telefono:'',rfc:'',imagen:'',correo_empresa:'' },
-            openCreate(){ this.mode='create'; this.form={ id:null,nombre_cliente:'',nombre_empresa:'',direccion:'',responsable:'',telefono:'',rfc:'',imagen:'',correo_empresa:'' }; this.modalOpen=true; },
+            existingImageUrl:null,
+            newImageUrl:null,
+            openCreate(){
+                this.mode='create';
+                this.form={ id:null,nombre_cliente:'',nombre_empresa:'',direccion:'',responsable:'',telefono:'',rfc:'',imagen:'',correo_empresa:'' };
+                this.existingImageUrl=null;
+                this.clearImageInput();
+                this.modalOpen=true;
+            },
             openEdit(item){
                 this.mode='edit';
                 this.form={ id:item.id,nombre_cliente:item.nombre_cliente ?? '',nombre_empresa:item.nombre_empresa ?? '',direccion:item.direccion ?? '',responsable:item.responsable ?? '',telefono:item.telefono ?? '',rfc:item.rfc ?? '',imagen:item.imagen ?? '',correo_empresa:item.correo_empresa ?? '' };
+                this.existingImageUrl = this.resolveImageUrl(item.imagen);
+                this.clearImageInput();
                 this.modalOpen=true;
             },
-            close(){ this.modalOpen=false; },
+            close(){
+                this.modalOpen=false;
+                this.clearImageInput();
+            },
+            resolveImageUrl(path){
+                if(!path){ return null; }
+                if(/^https?:\/\//i.test(path)){ return path; }
+                return this.assetBase + path.replace(/^\/+/, '');
+            },
+            handleImageChange(event){
+                const file = event.target.files[0];
+                if(!file){
+                    this.newImageUrl = null;
+                    return;
+                }
+                if(this.newImageUrl){
+                    URL.revokeObjectURL(this.newImageUrl);
+                }
+                this.newImageUrl = URL.createObjectURL(file);
+            },
+            clearImageInput(){
+                if(this.newImageUrl){
+                    URL.revokeObjectURL(this.newImageUrl);
+                }
+                this.newImageUrl = null;
+                if(this.$refs?.imagenInput){
+                    this.$refs.imagenInput.value = '';
+                }
+            },
             formAction(){
                 if(this.mode==='create'){ return @json(route('clientes.store')); }
                 const base = @json(route('clientes.update','__ID__')); return base.replace('__ID__', this.form.id ?? '');
-            }
+            },
+            assetBase: @json(asset(''))
         }
     }
     </script>

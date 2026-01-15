@@ -68,6 +68,12 @@
       .dataTables_paginate .paginate_button:hover{background:#F3F4F6}
       .dataTables_info{display:none}
 
+      @media (max-width: 767px) {
+        .card { border:0; background:transparent; box-shadow:none }
+        #tablaUsuarios { display:none }
+        .card .px-4 { padding-left:0; padding-right:0 }
+      }
+
       /* Modal: altura segura + scroll interno */
       .modal-card{ max-height: calc(100vh - 6rem); overflow:auto; }
       [x-cloak]{display:none !important;}
@@ -86,6 +92,8 @@
       @endif
     </div>
 
+    <div id="usuariosCards" class="md:hidden space-y-4"></div>
+
     <div class="card">
       <table id="tablaUsuarios" class="min-w-full text-sm">
         <thead>
@@ -100,7 +108,13 @@
         <tbody class="text-gray-700">
           @forelse ($usuarios as $usuario)
             @php($roles = $usuario->roles->pluck('name'))
-            <tr>
+            <tr data-user='@json([
+              "id" => $usuario->id,
+              "name" => $usuario->name,
+              "email" => $usuario->email,
+              "roles" => $roles->values(),
+              "created" => optional($usuario->created_at)->format("d/m/Y"),
+            ])'>
               <td class="font-medium text-gray-900">{{ $usuario->name }}</td>
               <td>{{ $usuario->email }}</td>
               <td>
@@ -327,6 +341,72 @@
           ]
         });
 
+        const escapeHtml = (value) => String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+
+        const renderCards = () => {
+          const $cards = $('#usuariosCards');
+          $cards.empty();
+
+          const totalCount = table.data().length;
+          const filteredCount = table.rows({ search: 'applied' }).count();
+          if (filteredCount === 0) {
+            const message = totalCount === 0 ? 'No hay usuarios registrados.' : 'No se encontraron resultados.';
+            $cards.append(`<div class="rounded-2xl border border-gray-200 bg-white p-6 text-center text-gray-500">${message}</div>`);
+            return;
+          }
+
+          table.rows({ page: 'current', search: 'applied' }).nodes().each((row) => {
+            const payload = JSON.parse(row.dataset.user || '{}');
+            const roles = Array.isArray(payload.roles) ? payload.roles : [];
+            const roleBadges = roles.length
+              ? roles.map((rol) => {
+                  const key = String(rol).toLowerCase();
+                  const klass = key === 'admin' ? 'role-admin' : (key === 'virtuality' ? 'role-virt' : '');
+                  const label = escapeHtml(String(rol).replace(/[_-]/g, ' '));
+                  return `<span class="role-badge ${klass}">${label}</span>`;
+                }).join('')
+              : '<span class="role-badge" style="background:#F3F4F6;color:#374151">Sin rol</span>';
+
+            const safeName = escapeHtml(payload.name ?? '');
+            const safeEmail = escapeHtml(payload.email ?? '');
+            const safeCreated = escapeHtml(payload.created || '—');
+            const safeRoles = JSON.stringify(roles);
+
+            $cards.append(`
+              <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <div class="font-semibold text-gray-900 truncate">${safeName}</div>
+                    <div class="text-sm text-gray-500 truncate">${safeEmail}</div>
+                    <div class="mt-2 flex flex-wrap gap-2">${roleBadges}</div>
+                    <div class="mt-2 text-xs text-gray-400">Creado: ${safeCreated}</div>
+                  </div>
+                  <div class="shrink-0">
+                    <button
+                      type="button"
+                      class="btn-edit inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                      data-id="${payload.id ?? ''}"
+                      data-name="${safeName}"
+                      data-email="${safeEmail}"
+                      data-roles='${safeRoles}'
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M4 21h4l11-11a2.828 2.828 0 10-4-4L4 17v4z" stroke="currentColor" stroke-width="1.5"/>
+                      </svg>
+                      Editar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            `);
+          });
+        };
+
         // Buscador externo
         $('#searchUsuarios').on('input', function(){ table.search(this.value).draw(); });
 
@@ -347,6 +427,9 @@
           $('#searchUsuarios').val(@json($q));
           table.search(@json($q)).draw();
         @endif
+
+        renderCards();
+        table.on('draw', renderCards);
       });
     </script>
   @endpush
