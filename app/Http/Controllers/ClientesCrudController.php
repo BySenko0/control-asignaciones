@@ -4,7 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\ClientesAsignacion;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ClientesCrudController extends Controller
 {
@@ -37,6 +38,9 @@ class ClientesCrudController extends Controller
     public function store(Request $request)
     {
         $data = $this->validated($request);
+        if ($request->hasFile('imagen')) {
+            $data['imagen'] = $this->storeImage($request->file('imagen'));
+        }
         ClientesAsignacion::create($data);
         return redirect()->route('clientes.index')->with('ok', 'Cliente creado.');
     }
@@ -51,6 +55,12 @@ class ClientesCrudController extends Controller
     {
         $cliente = ClientesAsignacion::findOrFail($id);
         $data = $this->validated($request, $cliente->id);
+        if ($request->hasFile('imagen')) {
+            $data['imagen'] = $this->storeImage($request->file('imagen'));
+            $this->deleteImageIfLocal($cliente->imagen);
+        } else {
+            unset($data['imagen']);
+        }
         $cliente->update($data);
         return redirect()->route('clientes.index')->with('ok', 'Cliente actualizado.');
     }
@@ -71,8 +81,30 @@ class ClientesCrudController extends Controller
             'responsable'     => ['nullable','string','max:150'],
             'telefono'        => ['nullable','string','max:30'],
             'rfc'             => ['nullable','string','max:50'],
-            'imagen'          => ['nullable','string','max:255'],   // usa ruta/url; si quieres upload lo agregamos luego
+            'imagen'          => ['nullable','image','mimes:jpg,jpeg,png,webp','max:5120'],
             'correo_empresa'  => ['nullable','email','max:150'],
         ]);
+    }
+
+    private function storeImage($file): string
+    {
+        $filename = Str::uuid()->toString() . '.' . $file->getClientOriginalExtension();
+        $path = $file->storeAs('img_clientes', $filename, 'public');
+
+        return 'storage/' . $path;
+    }
+
+    private function deleteImageIfLocal(?string $path): void
+    {
+        if (!$path || filter_var($path, FILTER_VALIDATE_URL)) {
+            return;
+        }
+
+        $cleanPath = ltrim($path, '/');
+        if (str_starts_with($cleanPath, 'storage/')) {
+            $cleanPath = substr($cleanPath, strlen('storage/'));
+        }
+
+        Storage::disk('public')->delete($cleanPath);
     }
 }
